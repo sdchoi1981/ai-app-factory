@@ -396,11 +396,11 @@
     {
       "appId": "passportkit",
       "appName": "PassportKit",
-      "description": "Offline Korean passport photo preparation, manual crown-to-chin guides, local face hints, JPEG and print PDF.",
+      "description": "Offline passport photo preparation, live guide, Korean/US/Japan print profiles, personal photo editing and print sheets.",
       "platform": "android",
       "applicationId": "com.factory.passportkit",
-      "versionName": "1.0.0",
-      "versionCode": 1,
+      "versionName": "1.5.0",
+      "versionCode": 6,
       "category": "photography",
       "status": "testing",
       "supportedLanguages": [
@@ -426,7 +426,7 @@
       "privacyPolicyUrl": null,
       "privacy": {
         "dataCollected": [],
-        "notes": "Photo processed locally, no identity recognition or network permission. Temporary camera cache deleted on return; exports only to user-selected location. No ads or analytics."
+        "notes": "Local camera permission for guided capture only; no network, tracking or identity recognition. Temporary capture cache removed after result; exports to user-selected location. Ads and billing disabled."
       }
     }
   ]

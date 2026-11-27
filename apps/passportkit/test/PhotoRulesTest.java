@@ -7,6 +7,9 @@ public class PhotoRulesTest {
   ok(PhotoRules.layout(288,432)[0]==2&&PhotoRules.layout(288,432)[1]==3);
   ok(PhotoRules.layout(595,842)[0]==5&&PhotoRules.layout(595,842)[1]==6);
   ok(Math.abs(PhotoRules.points(35)*25.4/72-35)<1e-9);ok(PhotoRules.MAX_BYTES==500000);
+  for(PhotoRules.Profile p:PhotoRules.Profile.values()){int[] r=PhotoRules.crop(p,2400,3000,30,50,50);ok(PhotoRules.resolution(p,r));ok(Math.abs(r[2]-r[3]*(double)p.width/p.height)<=1);ok(PhotoRules.layout(p,288,432)[0]>0);}
+  ok(PhotoRules.pixels(25.4)==300);ok(!PhotoRules.backgroundAllowed(PhotoRules.Profile.KR));
+  int[] px={-1,-1,-1,-1,0xff111111,-1,-1,-1,-1};int[] changed=com.factory.passportkit.BackgroundEdit.replace(PhotoRules.Profile.ID,px,3,3,0xffaabbcc,20);ok(changed[0]==0xffaabbcc&&changed[4]==0xff111111&&px[0]==-1);try{com.factory.passportkit.BackgroundEdit.replace(PhotoRules.Profile.KR,px,3,3,0xffaabbcc,20);throw new AssertionError();}catch(IllegalArgumentException expected){}
   System.out.println("PassportKit crop, head guide, resolution and physical print layout checks passed");
  }
 }
