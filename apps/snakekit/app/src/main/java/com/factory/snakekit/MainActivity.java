@@ -19,6 +19,10 @@ import java.util.Collections;
 public final class MainActivity extends Activity {
     private static final String LOCAL_URL = "https://appassets.androidplatform.net/assets/index.html";
     private WebView view;
+    private android.speech.tts.TextToSpeech speech;
+    private boolean speechReady;
+    private boolean closed;
+    private boolean visible;
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
         FrameLayout root = new FrameLayout(this);
@@ -63,14 +67,47 @@ public final class MainActivity extends Activity {
                 return blocked(403, "Forbidden");
             }
         });
+        view.addJavascriptInterface(new SpeechBridge(), "SnakeSpeech");
         view.loadUrl(LOCAL_URL);
     }
+    private final class SpeechBridge {
+        @android.webkit.JavascriptInterface public void read(String text) {
+            if (text == null || text.length() > 1000) return;
+            runOnUiThread(() -> speak(text));
+        }
+    }
+    private void speak(String text) {
+        if (closed || !visible) return;
+        if (speech == null) {
+            speech = new android.speech.tts.TextToSpeech(this, status -> runOnUiThread(() -> {
+                if (closed || speech == null) return;
+                if (status == android.speech.tts.TextToSpeech.SUCCESS && speech.getVoices() != null) {
+                    for (android.speech.tts.Voice voice : speech.getVoices()) {
+                        if (voice.getLocale().getLanguage().equals("ko") && !voice.isNetworkConnectionRequired()
+                            && !voice.getFeatures().contains(android.speech.tts.TextToSpeech.Engine.KEY_FEATURE_NOT_INSTALLED)
+                            && speech.setVoice(voice) == android.speech.tts.TextToSpeech.SUCCESS) {
+                            speechReady = true; break;
+                        }
+                    }
+                }
+                if (visible) speak(text);
+            }));
+            return;
+        }
+        if (speechReady) speech.speak(text, android.speech.tts.TextToSpeech.QUEUE_FLUSH, null, "snake-description");
+        else android.widget.Toast.makeText(this, "기기에 한국어 오프라인 음성을 설치해 주세요.", android.widget.Toast.LENGTH_LONG).show();
+    }
+    @Override protected void onResume() { super.onResume(); visible = true; }
+    @Override protected void onPause() { visible = false; if (speech != null) speech.stop(); super.onPause(); }
     private static WebResourceResponse blocked(int code, String reason) {
         return new WebResourceResponse("text/plain", "UTF-8", code, reason,
             Collections.emptyMap(), new ByteArrayInputStream(new byte[0]));
     }
     @Override protected void onDestroy() {
+        closed = true;
+        if (speech != null) { speech.stop(); speech.shutdown(); speech = null; }
         if (view != null) {
+            view.removeJavascriptInterface("SnakeSpeech");
             ((android.view.ViewGroup)view.getParent()).removeView(view);
             view.destroy();
             view = null;

@@ -361,11 +361,11 @@
     {
       "appId": "snakekit",
       "appName": "SnakeKit",
-      "description": "Korean child-friendly offline snake atlas with 24 living taxa, quizzes, morphs, tail features and fossils.",
+      "description": "Korean offline snake atlas: 100 living taxa, 24 detailed quiz entries, morphs, fossils, collection, tournament and local speech.",
       "platform": "android",
       "applicationId": "com.factory.snakekit",
-      "versionName": "1.1.0",
-      "versionCode": 2,
+      "versionName": "1.2.0",
+      "versionCode": 3,
       "category": "education",
       "status": "testing",
       "supportedLanguages": [
@@ -390,7 +390,7 @@
       "privacyPolicyUrl": null,
       "privacy": {
         "dataCollected": [],
-        "notes": "Child-directed app, no network or ads. Favorites stored locally only."
+        "notes": "Child-directed, no ads or network permission. Favorites and collection stay local. Optional speech uses installed offline Korean voice."
       }
     }
   ]
