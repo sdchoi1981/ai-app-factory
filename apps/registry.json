@@ -361,11 +361,11 @@
     {
       "appId": "snakekit",
       "appName": "SnakeKit",
-      "description": "Korean offline snake atlas: 100 living taxa, 24 detailed quiz entries, morphs, fossils, collection, tournament and local speech.",
+      "description": "Korean offline snake atlas with 100 base taxa, optional 500-entry edition, learning games, conservation, tail animation and offline speech.",
       "platform": "android",
       "applicationId": "com.factory.snakekit",
-      "versionName": "1.2.0",
-      "versionCode": 3,
+      "versionName": "1.3.0",
+      "versionCode": 4,
       "category": "education",
       "status": "testing",
       "supportedLanguages": [
