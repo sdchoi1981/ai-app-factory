@@ -27,6 +27,12 @@ import factory.ui.SystemInsets;
 
 public final class MainActivity extends Activity {
  private static final int PICK=101,CAPTURE=102,SAVE_JPG=103,SAVE_PDF=104,SAVE_SHEET=105,GUIDED=106,CAMERA_PERMISSION=107;
+ private static final long SPLASH_MIN_MS=1500L;
+ private static boolean firstActivityCreated;
+ private View splashGateView;
+ private android.view.ViewTreeObserver.OnPreDrawListener splashGate;
+ private final android.os.Handler splashHandler=new android.os.Handler(android.os.Looper.getMainLooper());
+ private final Runnable releaseSplash=this::releaseSplashGate;
  private final ExecutorService worker=Executors.newSingleThreadExecutor();
  private LinearLayout content; private TextView status,measure,quality;
  private Preview preview; private SeekBar zoom,x,y,headTop,headBottom;
@@ -45,6 +51,9 @@ public final class MainActivity extends Activity {
  @Override public void onCreate(Bundle saved){
   setTheme(R.style.FactoryTheme);
   super.onCreate(saved);
+  final long startedAt=android.os.SystemClock.uptimeMillis();
+  final boolean holdSplash=!firstActivityCreated&&saved==null;
+  firstActivityCreated=true;
   getWindow().addFlags(WindowManager.LayoutParams.FLAG_SECURE);
   File dir=new File(getCacheDir(),"capture");dir.mkdirs();
   if(saved!=null){String n=saved.getString("capture");if(n!=null&&n.matches("photo-[a-zA-Z0-9]+\\.jpg"))pendingCamera=new File(dir,n);}
@@ -75,8 +84,29 @@ public final class MainActivity extends Activity {
   label(getString(R.string.pk_032),14);
   label(getString(R.string.pk_033),14);
   label("https://www.passport.go.kr/home/kor/contents.do?menuPos=32\nhttps://www.passport.go.kr/home/kor/contents.do?menuPos=12",12);
+  if(holdSplash)holdSplashUntil(scroll,startedAt+SPLASH_MIN_MS);
   setContentView(scroll);SystemInsets.apply(this,content);profileSelect.setOnItemSelectedListener(new android.widget.AdapterView.OnItemSelectedListener(){public void onNothingSelected(android.widget.AdapterView<?> p){}public void onItemSelected(android.widget.AdapterView<?> p,View v,int i,long id){profile=PhotoRules.Profile.values()[i];backgroundColor=0;confirmed.setChecked(false);updateProfile();if(source!=null)updateCrop();else updateMeasurement();}});updateProfile();updateMeasurement();
  }
+ private void holdSplashUntil(View view,long deadline){
+  splashGateView=view;
+  splashGate=()->{
+   if(android.os.SystemClock.uptimeMillis()<deadline)return false;
+   releaseSplashGate();
+   return true;
+  };
+  view.getViewTreeObserver().addOnPreDrawListener(splashGate);
+  splashHandler.postAtTime(releaseSplash,deadline);
+ }
+ private void releaseSplashGate(){
+  splashHandler.removeCallbacks(releaseSplash);
+  if(splashGateView!=null){
+   android.view.ViewTreeObserver observer=splashGateView.getViewTreeObserver();
+   if(observer.isAlive()&&splashGate!=null)observer.removeOnPreDrawListener(splashGate);
+   splashGateView.invalidate();
+  }
+  splashGateView=null;splashGate=null;
+ }
+ @Override protected void onPause(){releaseSplashGate();super.onPause();}
  @Override protected void onSaveInstanceState(Bundle out){super.onSaveInstanceState(out);if(pendingCamera!=null)out.putString("capture",pendingCamera.getName());}
  private void pick(){if(busy||pendingExport!=null)return;try{Intent i=new Intent(Intent.ACTION_OPEN_DOCUMENT);i.setType("image/jpeg");i.addCategory(Intent.CATEGORY_OPENABLE);startActivityForResult(i,PICK);}catch(RuntimeException e){message(getString(R.string.pk_034));}}
  private void guided(){if(busy||pendingCamera!=null||pendingExport!=null)return;if(checkSelfPermission(android.Manifest.permission.CAMERA)!=android.content.pm.PackageManager.PERMISSION_GRANTED){requestPermissions(new String[]{android.Manifest.permission.CAMERA},CAMERA_PERMISSION);return;}launchGuide();}
@@ -153,7 +183,7 @@ public final class MainActivity extends Activity {
  }
  private byte[] makeSheet()throws IOException{int pos=paper.getSelectedItemPosition(),w=pos==0?1200:pos==1?1500:2480,h=pos==0?1800:pos==1?2100:3508;int pw=PhotoRules.pixels(profile.mmW),ph=PhotoRules.pixels(profile.mmH),gap=PhotoRules.pixels(3),margin=PhotoRules.pixels(4),cols=(w-2*margin+gap)/(pw+gap),rows=(h-2*margin+gap)/(ph+gap);Bitmap bitmap=Bitmap.createBitmap(w,h,Bitmap.Config.ARGB_8888);try{Canvas c=new Canvas(bitmap);c.drawColor(Color.WHITE);int left=(w-cols*pw-(cols-1)*gap)/2,top=(h-rows*ph-(rows-1)*gap)/2;Paint p=new Paint(Paint.FILTER_BITMAP_FLAG);for(int y=0;y<rows;y++)for(int x=0;x<cols;x++){int xx=left+x*(pw+gap),yy=top+y*(ph+gap);c.drawBitmap(cropped,null,new Rect(xx,yy,xx+pw,yy+ph),p);}ByteArrayOutputStream out=new ByteArrayOutputStream();if(!bitmap.compress(Bitmap.CompressFormat.JPEG,95,out))throw new IOException();return out.toByteArray();}finally{bitmap.recycle();}}
  private void clear(){if(busy)return;generation++;if(source!=null){source.recycle();source=null;}if(cropped!=null){cropped.recycle();cropped=null;}pendingExport=null;pendingRequest=0;confirmed.setChecked(false);quality.setText("");message(getString(R.string.pk_072));updateMeasurement();}
- @Override protected void onDestroy(){closed=true;generation++;worker.shutdown();if(detector!=null)detector.close();if(source!=null)source.recycle();if(cropped!=null)cropped.recycle();pendingExport=null;if(isFinishing())removeCapture();super.onDestroy();}
+ @Override protected void onDestroy(){releaseSplashGate();closed=true;generation++;worker.shutdown();if(detector!=null)detector.close();if(source!=null)source.recycle();if(cropped!=null)cropped.recycle();pendingExport=null;if(isFinishing())removeCapture();super.onDestroy();}
  private final class Preview extends View{
   private final Paint p=new Paint(Paint.ANTI_ALIAS_FLAG|Paint.FILTER_BITMAP_FLAG);
   Preview(){super(MainActivity.this);}
