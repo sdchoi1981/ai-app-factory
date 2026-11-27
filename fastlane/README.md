@@ -16,7 +16,7 @@ node scripts/deploy-app.mjs unitkit --track production --rollout 0.1
 4. 각 환경의 업로드 키와 비밀번호는 GitHub Environment 비밀값으로 관리합니다. 로컬에서 승인된 배포를 실행할 때는 `ANDROID_KEYSTORE_PATH`, `ANDROID_STORE_PASSWORD`, `ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD` 및 `GOOGLE_APPLICATION_CREDENTIALS` 또는 `SUPPLY_JSON_KEY`를 설정합니다. 마지막 두 변수는 JSON 본문 대신 파일 경로를 받습니다.
 5. CI의 수동 Android 릴리스 워크플로를 이용합니다. 앱의 `releaseConfiguration.enabled`와 환경 배포 설정이 기본으로 꺼져 있습니다. 승인 후 앱 설정을 켜고 내부 테스트부터 배포합니다. `closedTrack`을 생략하면 `beta`를 사용합니다. 정식 출시는 보호된 환경의 사용자 승인과 명시적인 production 확인을 모두 요구합니다. `--rollout 0.1`은 Play가 이미 단계적 배포를 허용하는 업데이트에만 적용합니다.
 
-승인된 배포 명령은 앱을 빌드하고 임시 App Bundle을 JDK로 서명하고 검증합니다. Fastlane은 설정된 Play 트랙의 버전 코드 위로만 업로드합니다. 출시에 이전에 사용한 버전 코드는 Play 자체에서도 거부됩니다. `publishMetadata`가 명시적으로 켜진 앱만 검토된 `store/metadata`를 업로드합니다. 인증 경로와 실제 트랙 업로드는 인증이 제공된 보호된 환경에서 검증해야 합니다.
+승인된 배포 명령은 앱을 빌드하고 임시 App Bundle을 JDK로 서명하고 검증합니다. Fastlane은 Play에서 조회 가능한 모든 트랙의 최대 버전 코드를 확인하고 그보다 높은 번들만 업로드합니다. 출시에 이전에 사용한 버전 코드는 Play 자체에서도 거부됩니다. `publishMetadata`가 명시적으로 켜진 앱만 검토된 `store/metadata`를 업로드합니다. 인증 경로와 실제 트랙 업로드는 인증이 제공된 보호된 환경에서 검증해야 합니다.
 
 ## Cloudflare Pages
 

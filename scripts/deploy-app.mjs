@@ -80,7 +80,6 @@ async function publishAndroid(app, path, track, rollout, approved) {
       FACTORY_ANDROID_VERSION_CODE: String(app.versionCode),
       FACTORY_ANDROID_TRACK: track,
       FACTORY_ANDROID_OWNER_APPROVED: String(approved),
-      FACTORY_ANDROID_CLOSED_TRACK: app.releaseConfiguration.closedTrack ?? 'beta',
       FACTORY_ANDROID_ROLLOUT: rollout ?? '',
       FACTORY_ANDROID_BUNDLE: bundle,
       FACTORY_ANDROID_METADATA: metadata,

@@ -5,7 +5,6 @@ platform :android do
   lane :publish do
     app_id = ENV.fetch("FACTORY_ANDROID_APPLICATION_ID")
     track = ENV.fetch("FACTORY_ANDROID_TRACK")
-    closed_track = ENV.fetch("FACTORY_ANDROID_CLOSED_TRACK")
     code = Integer(ENV.fetch("FACTORY_ANDROID_VERSION_CODE"), 10)
     key = ENV.fetch("SUPPLY_JSON_KEY")
     metadata = ENV.fetch("FACTORY_ANDROID_PUBLISH_METADATA") == "true"
@@ -14,9 +13,17 @@ platform :android do
       UI.user_error!("Production requires explicit owner approval")
     end
     UI.user_error!("Version code must be a positive Play version code") unless (1..2100000000).cover?(code)
-    tracks = ["internal", "alpha", "beta", closed_track, "production", track].uniq
-    versions = tracks.flat_map do |name|
-      google_play_track_version_codes(package_name: app_id, track: name, json_key: key)
+    require "supply"
+    client = Supply::Client.make_from_config(params: { json_key: key, timeout: 300 })
+    client.begin_edit(package_name: app_id)
+    begin
+      versions = client.tracks.flat_map do |play_track|
+        Array(play_track.releases).flat_map do |release|
+          Array(release.version_codes).map { |version| Integer(version.to_s, 10) }
+        end
+      end
+    ensure
+      client.abort_current_edit
     end
     if !versions.empty? && code <= versions.max
       UI.user_error!("Version code #{code} must exceed the highest visible Play track code #{versions.max}")
