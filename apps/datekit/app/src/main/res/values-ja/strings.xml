@@ -1,0 +1,17 @@
+<resources>
+    <string name="app_name">DateKit</string>
+    <string name="subtitle">日数計算・カウントダウン・日付加算</string>
+    <string name="difference_title">日付間の日数</string>
+    <string name="start_date">開始日</string>
+    <string name="end_date">終了日</string>
+    <string name="swap">日付を入れ替える</string>
+    <string name="days_result">日数差：%1$d日</string>
+    <string name="inclusive_result">両日を含む：%1$d日</string>
+    <string name="dday_result">今日から終了日まで：%1$s</string>
+    <string name="offset_title">日数を加算・減算</string>
+    <string name="offset_hint">開始日からの日数（負数可）</string>
+    <string name="offset_result">結果：%1$s</string>
+    <string name="invalid_offset">1900〜9999年の日付になる整数を入力してください。</string>
+    <string name="reset">リセット</string>
+    <string name="offline">オフライン・このバージョンは広告や分析なし</string>
+</resources>
