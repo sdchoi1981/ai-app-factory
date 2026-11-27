@@ -1,0 +1,52 @@
+name: Build SnakeKit offline photo APK
+on:
+  pull_request:
+    branches: [main]
+    paths: ['apps/snakekit/**', '.github/workflows/build-snakekit-photos.yml']
+  push:
+    branches: [main]
+    paths: ['apps/snakekit/**', '.github/workflows/build-snakekit-photos.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  photo-apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.13'
+          cache-read-only: true
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools platforms;android-36 build-tools;36.0.0'
+          log-accepted-android-sdk-licenses: 'false'
+      - name: Fetch and verify curated photo files
+        run: node apps/snakekit/prepare-photos.mjs
+      - name: Build and verify offline app
+        run: |
+          set -euo pipefail
+          node scripts/test-app.mjs snakekit
+          node scripts/build-app.mjs snakekit
+          apk=apps/snakekit/app/build/outputs/apk/debug/app-debug.apk
+          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify "$apk"
+          if "$ANDROID_HOME/build-tools/36.0.0/aapt" dump permissions "$apk" | grep -F 'android.permission.INTERNET'; then exit 1; fi
+          unzip -p "$apk" assets/index.html > "$RUNNER_TEMP/catalog.html"
+          node --input-type=module -e "import fs from 'node:fs'; const s=fs.readFileSync(process.argv[1],'utf8'); const d=JSON.parse(s.match(/const PHOTO_DATA=(.*?);\nfunction nextCup/s)[1]); if(Object.keys(d).length!==3||Object.values(d).some(x=>!x.data.startsWith('data:image/jpeg;base64,')||!x.credit)) process.exit(1)" "$RUNNER_TEMP/catalog.html"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: snakekit-OFFLINE-PHOTO-APK
+          path: apps/snakekit/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 7
