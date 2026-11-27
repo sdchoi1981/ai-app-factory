@@ -140,3 +140,6 @@ test('Factory CLI scaffolds, validates, tests, builds and selects apps', t => {
   assert.deepEqual(matrixIds('--base', webOnly), ['smoke-android', 'smoke-web']);
   assert.deepEqual(matrixIds('--base', webOnly, '--app', 'unitkit'), []);
 });
+
+// Signing fixture uses a disposable key only; no production credentials.
+import './sign-aab.test.mjs';
