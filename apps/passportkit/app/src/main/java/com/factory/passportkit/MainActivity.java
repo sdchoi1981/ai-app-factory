@@ -1,6 +1,10 @@
 package com.factory.passportkit;
 
+import android.Manifest;
 import android.app.Activity;
+import android.content.pm.PackageManager;
+import android.os.Build;
+import android.provider.DocumentsContract;
 import android.os.Bundle;
 import android.content.Intent;
 import android.content.ClipData;
@@ -27,7 +31,7 @@ import factory.ui.SystemInsets;
 import factory.ui.KitUi;
 
 public final class MainActivity extends Activity {
- private static final int PICK=101,CAPTURE=102,SAVE_JPG=103,SAVE_PDF=104,SAVE_SHEET=105,GUIDED=106,CAMERA_PERMISSION=107;
+ private static final int PICK=101,CAPTURE=102,SAVE_JPG=103,SAVE_PDF=104,SAVE_SHEET=105,GUIDED=106,CAMERA_PERMISSION=107,GALLERY_PERMISSION=108;
  private static final long SPLASH_MIN_MS=1500L;
  private static boolean firstActivityCreated;
  private View splashGateView;
@@ -40,7 +44,11 @@ public final class MainActivity extends Activity {
  private CheckBox confirmed; private Button check,jpg,pdf,sheet,background,resetBackground; private Spinner paper,profileSelect; private TextView ruleNote; private PhotoRules.Profile profile=PhotoRules.Profile.KR; private int backgroundColor=0;
  private Bitmap source,cropped; private File pendingCamera;
  private FaceDetector detector; private int generation; private boolean busy,closed,updating;
- private byte[] pendingExport; private int pendingRequest;
+ private byte[] pendingExport;
+ private int pendingGalleryType;
+ private Uri savedGalleryImage;
+ private TextView exportStatus;
+ private Button openGallery,shareGallery;
  private int dp(int n){return Math.round(n*getResources().getDisplayMetrics().density);}
  private TextView label(String s,int size){TextView t=ui.text(s,size,size>=18);content.addView(t,ui.space(-2,0,2));return t;}
  private Button button(String s,Runnable r){Button b=new Button(this);b.setText(s);ui.button(b,false);b.setOnClickListener(v->r.run());content.addView(b,ui.space(-2,3,4));return b;}
@@ -82,10 +90,17 @@ public final class MainActivity extends Activity {
   background=button(getString(R.string.pk_022),this::chooseBackground);resetBackground=button(getString(R.string.pk_023),()->{backgroundColor=0;updateCrop();});
   ui.button(button(getString(R.string.stage_save),()->showStage(2)),true);
   exportPanel=ui.card(page);content=exportPanel;label(getString(R.string.pk_024),22);
-  label(getString(R.string.stage_save_hint),15);printPreview=new PrintPreview();printPreview.setContentDescription(getString(R.string.stage_paper_preview));ui.preview(printPreview);content.addView(printPreview,ui.space(dp(250),4,8));
+  label(getString(R.string.stage_save_hint),15);printPreview=new PrintPreview();printPreview.setContentDescription(getString(R.string.stage_paper_preview));ui.preview(printPreview);content.addView(printPreview,ui.space(dp(300),4,8));
   jpg=button(getString(R.string.pk_025),()->export(SAVE_JPG));ui.button(jpg,true);
   label(getString(R.string.pk_026),15);paper=new Spinner(this);paper.setContentDescription(getString(R.string.pk_026));ArrayAdapter<String> adapter=new ArrayAdapter<>(this,android.R.layout.simple_spinner_dropdown_item,new String[]{"4 × 6 in","5 × 7 in","A4"});paper.setAdapter(adapter);ui.field(paper);content.addView(paper,ui.space(dp(52),4,6));paper.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener(){public void onNothingSelected(AdapterView<?> p){}public void onItemSelected(AdapterView<?> p,View v,int i,long id){printPreview.invalidate();}});
-  pdf=button(getString(R.string.pk_027),()->export(SAVE_PDF));sheet=button(getString(R.string.pk_028),()->export(SAVE_SHEET));button(getString(R.string.stage_edit),()->showStage(1));label(getString(R.string.pk_033),14);
+  sheet=button(getString(R.string.pk_028),()->export(SAVE_SHEET));
+  pdf=button(getString(R.string.pk_027),()->export(SAVE_PDF));
+  exportStatus=label("",15);
+  exportStatus.setAccessibilityLiveRegion(View.ACCESSIBILITY_LIVE_REGION_POLITE);
+  openGallery=button(getString(R.string.gallery_open),()->openSavedImage(false));
+  shareGallery=button(getString(R.string.gallery_share),()->openSavedImage(true));
+  refreshGalleryActions();
+  button(getString(R.string.stage_edit),()->showStage(1));label(getString(R.string.pk_033),14);
   content=page;button(getString(R.string.pk_029),this::clear);button(getString(R.string.pk_030),()->new android.app.AlertDialog.Builder(this).setTitle("PassportKit Pro").setMessage(getString(R.string.pk_031)).setPositiveButton(android.R.string.ok,null).show());
   label(getString(R.string.pk_032),14);label("https://www.passport.go.kr/home/kor/contents.do?menuPos=32\nhttps://www.passport.go.kr/home/kor/contents.do?menuPos=12",12);
   showStage(0);
@@ -115,7 +130,19 @@ public final class MainActivity extends Activity {
  @Override protected void onSaveInstanceState(Bundle out){super.onSaveInstanceState(out);if(pendingCamera!=null)out.putString("capture",pendingCamera.getName());}
  private void pick(){if(busy||pendingExport!=null)return;try{Intent i=new Intent(Intent.ACTION_OPEN_DOCUMENT);i.setType("image/jpeg");i.addCategory(Intent.CATEGORY_OPENABLE);startActivityForResult(i,PICK);}catch(RuntimeException e){message(getString(R.string.pk_034));}}
  private void guided(){if(busy||pendingCamera!=null||pendingExport!=null)return;if(checkSelfPermission(android.Manifest.permission.CAMERA)!=android.content.pm.PackageManager.PERMISSION_GRANTED){requestPermissions(new String[]{android.Manifest.permission.CAMERA},CAMERA_PERMISSION);return;}launchGuide();}
- @Override public void onRequestPermissionsResult(int r,String[] p,int[] g){super.onRequestPermissionsResult(r,p,g);if(r==CAMERA_PERMISSION){if(g.length>0&&g[0]==android.content.pm.PackageManager.PERMISSION_GRANTED)launchGuide();else message(getString(R.string.pk_035));}}
+ @Override public void onRequestPermissionsResult(int request,String[] permissions,int[] grants){
+  super.onRequestPermissionsResult(request,permissions,grants);
+  boolean granted=grants.length>0&&grants[0]==PackageManager.PERMISSION_GRANTED;
+  if(request==CAMERA_PERMISSION){
+   if(granted)launchGuide();else message(getString(R.string.pk_035));
+  }else if(request==GALLERY_PERMISSION){
+   int type=pendingGalleryType;
+   pendingGalleryType=0;
+   updateMeasurement();
+   if(granted&&type!=0)export(type);
+   else if(type!=0)exportStatus.setText(R.string.gallery_permission_denied);
+  }
+ }
  private void launchGuide(){try{File dir=new File(getCacheDir(),"capture");dir.mkdirs();pendingCamera=File.createTempFile("photo-",".jpg",dir);Intent i=new Intent(this,GuideActivity.class);i.putExtra("name",pendingCamera.getName());i.putExtra("profile",profile.ordinal());startActivityForResult(i,GUIDED);}catch(Exception e){removeCapture();message(getString(R.string.pk_036));}}
  private void camera(){if(checkSelfPermission(android.Manifest.permission.CAMERA)!=android.content.pm.PackageManager.PERMISSION_GRANTED){guided();return;}if(busy||pendingCamera!=null||pendingExport!=null)return;try{
   File dir=new File(getCacheDir(),"capture");if(!dir.exists()&&!dir.mkdirs())throw new IOException();
@@ -128,16 +155,37 @@ public final class MainActivity extends Activity {
  @Override protected void onActivityResult(int request,int code,Intent data){super.onActivityResult(request,code,data);
   if(request==PICK&&code==RESULT_OK&&data!=null&&data.getData()!=null){load(data.getData(),false);return;}
   if(request==CAPTURE||request==GUIDED){if(code==RESULT_OK&&pendingCamera!=null&&pendingCamera.length()>0)load(Uri.fromFile(pendingCamera),true);else{removeCapture();message(getString(R.string.pk_038));}return;}
-  if(request==SAVE_JPG||request==SAVE_PDF||request==SAVE_SHEET){byte[] bytes=pendingExport;int expected=pendingRequest;pendingExport=null;pendingRequest=0;if(code!=RESULT_OK)return;
-   if(bytes==null||expected!=request||data==null||data.getData()==null){message(getString(R.string.pk_039));return;}
-   try(OutputStream out=getContentResolver().openOutputStream(data.getData(),"wt")){if(out==null)throw new IOException();out.write(bytes);message(getString(R.string.pk_040));}catch(Exception e){message(getString(R.string.pk_041));}
+  if(request!=SAVE_PDF)return;
+  byte[] bytes=pendingExport;
+  pendingExport=null;
+  if(code!=RESULT_OK){updateMeasurement();return;}
+  if(bytes==null||data==null||data.getData()==null){
+   updateMeasurement();
+   exportStatus.setText(R.string.pk_039);
+   return;
   }
+  Uri destination=data.getData();
+  busy=true;
+  updateMeasurement();
+  worker.execute(()->{
+   int result=R.string.pk_040;
+   try(OutputStream output=getContentResolver().openOutputStream(destination,"wt")){
+    if(output==null)throw new IOException();
+    output.write(bytes);
+   }catch(IOException|RuntimeException error){
+    result=R.string.pk_041;
+    try{DocumentsContract.deleteDocument(getContentResolver(),destination);}
+    catch(IOException|RuntimeException ignored){ /* Some document providers cannot delete a failed export. */ }
+   }
+   finishExport(result,null);
+  });
  }
  private void message(String s){status.setText(s);}
  private void load(Uri uri,boolean capture){if(busy)return;busy=true;generation++;updateMeasurement();message(getString(R.string.pk_042));
   worker.execute(()->{Bitmap b=null;try{b=decode(uri);}catch(Exception|OutOfMemoryError ignored){}Bitmap decoded=b;runOnUiThread(()->{
    if(capture)removeCapture();if(closed){if(decoded!=null)decoded.recycle();return;}busy=false;
    if(decoded==null){message(getString(R.string.pk_043));updateMeasurement();return;}
+   savedGalleryImage=null;refreshGalleryActions();exportStatus.setText("");
    if(source!=null)source.recycle();source=decoded;backgroundColor=0;updating=true;zoom.setProgress(0);x.setProgress(50);y.setProgress(50);headTop.setProgress(10);headBottom.setProgress(85);confirmed.setChecked(false);updating=false;updateCrop();message(getString(R.string.pk_044));showStage(1);
   });});
  }
@@ -159,7 +207,11 @@ public final class MainActivity extends Activity {
  private void chooseBackground(){if(source==null||busy||!PhotoRules.backgroundAllowed(profile))return;new android.app.AlertDialog.Builder(this).setTitle(getString(R.string.pk_049)).setItems(new String[]{getString(R.string.pk_050),getString(R.string.pk_051),getString(R.string.pk_052)},(d,i)->{if(!PhotoRules.backgroundAllowed(profile))return;backgroundColor=new int[]{Color.WHITE,0xffc9e2f4,0xffd9d9d9}[i];confirmed.setChecked(false);updateCrop();message(getString(R.string.pk_053));}).show();}
  private void updateMeasurement(){if(measure==null)return;boolean valid=source!=null&&PhotoRules.resolution(profile,cropRect());boolean range=PhotoRules.headRange(profile,headTop.getProgress(),headBottom.getProgress());
   measure.setText(source==null?getString(R.string.pk_054):String.format(Locale.US,getString(R.string.pk_055),PhotoRules.headMm(profile,headTop.getProgress(),headBottom.getProgress()),valid?getString(R.string.pk_056):getString(R.string.pk_057)));
-  boolean ready=valid&&range&&confirmed.isChecked()&&!busy;check.setEnabled(source!=null&&!busy);jpg.setEnabled(ready);pdf.setEnabled(ready);sheet.setEnabled(ready);background.setEnabled(source!=null&&!busy);resetBackground.setEnabled(source!=null&&!busy);preview.invalidate();if(printPreview!=null)printPreview.invalidate();
+  boolean ready=valid&&range&&confirmed.isChecked()&&!exportBlocked();
+  if(exportBlocked())exportStatus.setText(R.string.export_in_progress);
+  else if(!ready)exportStatus.setText(R.string.export_disabled);
+  else if(exportStatus.getText().toString().equals(getString(R.string.export_in_progress))||
+    exportStatus.getText().toString().equals(getString(R.string.export_disabled)))exportStatus.setText("");check.setEnabled(source!=null&&!busy);jpg.setEnabled(ready);pdf.setEnabled(ready);sheet.setEnabled(ready);background.setEnabled(source!=null&&!busy);resetBackground.setEnabled(source!=null&&!busy);preview.invalidate();if(printPreview!=null)printPreview.invalidate();
  }
  private void inspect(){if(cropped==null||busy)return;int ticket=++generation;busy=true;updateMeasurement();quality.setText(getString(R.string.pk_058));
   Bitmap snapshot=cropped.copy(Bitmap.Config.ARGB_8888,false);String hint=qualityHint(snapshot);
@@ -171,23 +223,112 @@ public final class MainActivity extends Activity {
  private String qualityHint(Bitmap b){long sum=0,edge=0,white=0,corners=0,n=0;for(int yy=4;yy<b.getHeight()-4;yy+=8)for(int xx=4;xx<b.getWidth()-4;xx+=8){int p=b.getPixel(xx,yy),r=Color.red(p),g=Color.green(p),bl=Color.blue(p),l=(r*30+g*59+bl*11)/100;int q=b.getPixel(xx+3,yy);int l2=(Color.red(q)*30+Color.green(q)*59+Color.blue(q)*11)/100;sum+=l;edge+=Math.abs(l-l2);n++;if(yy<65&&(xx<55||xx>b.getWidth()-55)){corners++;if(Math.min(r,Math.min(g,bl))>=225&&Math.max(r,Math.max(g,bl))-Math.min(r,Math.min(g,bl))<=18)white++;}}
   return (sum/n<90?getString(R.string.pk_065):getString(R.string.pk_066))+" · "+(edge/n<3?getString(R.string.pk_067):getString(R.string.pk_068))+"\n"+(corners>0&&white*100/corners>=85?getString(R.string.pk_069):getString(R.string.pk_070));
  }
- private void export(int type){if(busy||pendingExport!=null||source==null||!confirmed.isChecked()||!PhotoRules.headRange(profile,headTop.getProgress(),headBottom.getProgress())||!PhotoRules.resolution(profile,cropRect()))return;
-  try{byte[] bytes=type==SAVE_PDF?makePdf():type==SAVE_SHEET?makeSheet():makeJpg();if(bytes==null)throw new IOException();pendingExport=bytes;pendingRequest=type;
-   Intent i=new Intent(Intent.ACTION_CREATE_DOCUMENT);i.setType(type==SAVE_PDF?"application/pdf":"image/jpeg");i.addCategory(Intent.CATEGORY_OPENABLE);i.putExtra(Intent.EXTRA_TITLE,profile.id+(type==SAVE_PDF?"-print.pdf":type==SAVE_SHEET?"-sheet.jpg":"-photo.jpg"));startActivityForResult(i,pendingRequest);
-  }catch(Exception e){pendingExport=null;pendingRequest=0;message(getString(R.string.pk_071));}
+ private boolean exportBlocked(){
+  return busy||pendingExport!=null||pendingGalleryType!=0;
  }
- private byte[] makeJpg(){for(int q=100;q>=60;q-=5){ByteArrayOutputStream out=new ByteArrayOutputStream();if(cropped.compress(Bitmap.CompressFormat.JPEG,q,out)&&out.size()<=profile.maxBytes)return out.toByteArray();}return null;}
- private byte[] makePdf()throws IOException{
-  int pos=paper.getSelectedItemPosition(),w=pos==0?288:pos==1?360:595,h=pos==0?432:pos==1?504:842;int[] count=PhotoRules.layout(profile,w,h);
+
+ private void export(int type){
+  if(exportBlocked())return;
+  if(source==null||cropped==null||!confirmed.isChecked()||
+    !PhotoRules.headRange(profile,headTop.getProgress(),headBottom.getProgress())||
+    !PhotoRules.resolution(profile,cropRect())){
+   exportStatus.setText(R.string.export_disabled);
+   return;
+  }
+  if(type!=SAVE_PDF&&Build.VERSION.SDK_INT<Build.VERSION_CODES.Q&&
+    checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE)!=PackageManager.PERMISSION_GRANTED){
+   pendingGalleryType=type;
+   updateMeasurement();
+   requestPermissions(new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},GALLERY_PERMISSION);
+   return;
+  }
+
+  Bitmap image;
+  try{image=cropped.copy(Bitmap.Config.ARGB_8888,false);}
+  catch(RuntimeException|OutOfMemoryError error){image=null;}
+  if(image==null){
+   exportStatus.setText(type==SAVE_PDF?R.string.pk_071:R.string.gallery_save_failed);
+   return;
+  }
+  Bitmap snapshot=image;
+  PhotoRules.Profile exportProfile=profile;
+  int paperSize=paper.getSelectedItemPosition();
+  if(type!=SAVE_PDF){savedGalleryImage=null;refreshGalleryActions();}
+  busy=true;
+  updateMeasurement();
+  worker.execute(()->{
+   try{
+    if(type==SAVE_PDF){
+     byte[] bytes=makePdf(snapshot,exportProfile,paperSize);
+     runOnUiThread(()->choosePdfDestination(bytes,exportProfile));
+    }else{
+     byte[] bytes=type==SAVE_SHEET?makeSheet(snapshot,exportProfile,paperSize):makeJpg(snapshot,exportProfile);
+     if(bytes==null)throw new IOException();
+     Uri uri=GalleryExport.save(getApplicationContext(),bytes,type==SAVE_SHEET);
+     finishExport(R.string.gallery_saved,uri);
+    }
+   }catch(IOException|RuntimeException|OutOfMemoryError error){
+    finishExport(type==SAVE_PDF?R.string.pk_071:R.string.gallery_save_failed,null);
+   }finally{snapshot.recycle();}
+  });
+ }
+
+ private void choosePdfDestination(byte[] bytes,PhotoRules.Profile exportProfile){
+  if(closed)return;
+  busy=false;
+  pendingExport=bytes;
+  updateMeasurement();
+  try{
+   Intent intent=new Intent(Intent.ACTION_CREATE_DOCUMENT).setType("application/pdf");
+   intent.addCategory(Intent.CATEGORY_OPENABLE);
+   intent.putExtra(Intent.EXTRA_TITLE,exportProfile.id+"-print.pdf");
+   startActivityForResult(intent,SAVE_PDF);
+  }catch(RuntimeException error){
+   pendingExport=null;
+   updateMeasurement();
+   exportStatus.setText(R.string.pk_071);
+  }
+ }
+
+ private void finishExport(int result,Uri uri){
+  runOnUiThread(()->{
+   if(closed)return;
+   busy=false;
+   if(uri!=null)savedGalleryImage=uri;
+   refreshGalleryActions();
+   updateMeasurement();
+   exportStatus.setText(result);
+  });
+ }
+
+ private void refreshGalleryActions(){
+  int visibility=savedGalleryImage==null?View.GONE:View.VISIBLE;
+  openGallery.setVisibility(visibility);
+  shareGallery.setVisibility(visibility);
+ }
+
+ private void openSavedImage(boolean share){
+  Uri uri=savedGalleryImage;
+  if(uri==null)return;
+  Intent intent=share?new Intent(Intent.ACTION_SEND).setType("image/jpeg").putExtra(Intent.EXTRA_STREAM,uri)
+    :new Intent(Intent.ACTION_VIEW).setDataAndType(uri,"image/jpeg");
+  intent.setClipData(ClipData.newRawUri("PassportKit JPEG",uri));
+  intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+  try{startActivity(share?Intent.createChooser(intent,getText(R.string.gallery_share)):intent);}
+  catch(RuntimeException error){exportStatus.setText(R.string.gallery_unavailable);}
+ }
+ private static byte[] makeJpg(Bitmap image,PhotoRules.Profile profile){for(int q=100;q>=60;q-=5){ByteArrayOutputStream out=new ByteArrayOutputStream();if(image.compress(Bitmap.CompressFormat.JPEG,q,out)&&out.size()<=profile.maxBytes)return out.toByteArray();}return null;}
+ private static byte[] makePdf(Bitmap image,PhotoRules.Profile profile,int pos)throws IOException{
+  int w=pos==0?288:pos==1?360:595,h=pos==0?432:pos==1?504:842;int[] count=PhotoRules.layout(profile,w,h);
   float pw=(float)PhotoRules.points(profile.mmW),ph=(float)PhotoRules.points(profile.mmH),gap=(float)PhotoRules.points(3);
   float left=(w-count[0]*pw-(count[0]-1)*gap)/2,top=(h-count[1]*ph-(count[1]-1)*gap)/2;
   PdfDocument doc=new PdfDocument();try{PdfDocument.Page page=doc.startPage(new PdfDocument.PageInfo.Builder(w,h,1).create());Canvas c=page.getCanvas();c.drawColor(Color.WHITE);Paint p=new Paint(Paint.FILTER_BITMAP_FLAG);
-   for(int row=0;row<count[1];row++)for(int col=0;col<count[0];col++){float xx=left+col*(pw+gap),yy=top+row*(ph+gap);c.drawBitmap(cropped,null,new RectF(xx,yy,xx+pw,yy+ph),p);}
+   for(int row=0;row<count[1];row++)for(int col=0;col<count[0];col++){float xx=left+col*(pw+gap),yy=top+row*(ph+gap);c.drawBitmap(image,null,new RectF(xx,yy,xx+pw,yy+ph),p);}
    doc.finishPage(page);ByteArrayOutputStream out=new ByteArrayOutputStream();doc.writeTo(out);return out.toByteArray();
   }finally{doc.close();}
  }
- private byte[] makeSheet()throws IOException{int pos=paper.getSelectedItemPosition(),w=pos==0?1200:pos==1?1500:2480,h=pos==0?1800:pos==1?2100:3508;int pw=PhotoRules.pixels(profile.mmW),ph=PhotoRules.pixels(profile.mmH),gap=PhotoRules.pixels(3),margin=PhotoRules.pixels(4),cols=(w-2*margin+gap)/(pw+gap),rows=(h-2*margin+gap)/(ph+gap);Bitmap bitmap=Bitmap.createBitmap(w,h,Bitmap.Config.ARGB_8888);try{Canvas c=new Canvas(bitmap);c.drawColor(Color.WHITE);int left=(w-cols*pw-(cols-1)*gap)/2,top=(h-rows*ph-(rows-1)*gap)/2;Paint p=new Paint(Paint.FILTER_BITMAP_FLAG);for(int y=0;y<rows;y++)for(int x=0;x<cols;x++){int xx=left+x*(pw+gap),yy=top+y*(ph+gap);c.drawBitmap(cropped,null,new Rect(xx,yy,xx+pw,yy+ph),p);}ByteArrayOutputStream out=new ByteArrayOutputStream();if(!bitmap.compress(Bitmap.CompressFormat.JPEG,95,out))throw new IOException();return out.toByteArray();}finally{bitmap.recycle();}}
- private void clear(){if(busy)return;generation++;if(source!=null){source.recycle();source=null;}if(cropped!=null){cropped.recycle();cropped=null;}pendingExport=null;pendingRequest=0;confirmed.setChecked(false);quality.setText("");message(getString(R.string.pk_072));updateMeasurement();showStage(0);}
+ private static byte[] makeSheet(Bitmap image,PhotoRules.Profile profile,int pos)throws IOException{int w=pos==0?1200:pos==1?1500:2480,h=pos==0?1800:pos==1?2100:3508;int pw=PhotoRules.pixels(profile.mmW),ph=PhotoRules.pixels(profile.mmH),gap=PhotoRules.pixels(3),margin=PhotoRules.pixels(4),cols=(w-2*margin+gap)/(pw+gap),rows=(h-2*margin+gap)/(ph+gap);Bitmap bitmap=Bitmap.createBitmap(w,h,Bitmap.Config.ARGB_8888);try{Canvas c=new Canvas(bitmap);c.drawColor(Color.WHITE);int left=(w-cols*pw-(cols-1)*gap)/2,top=(h-rows*ph-(rows-1)*gap)/2;Paint p=new Paint(Paint.FILTER_BITMAP_FLAG);for(int y=0;y<rows;y++)for(int x=0;x<cols;x++){int xx=left+x*(pw+gap),yy=top+y*(ph+gap);c.drawBitmap(image,null,new Rect(xx,yy,xx+pw,yy+ph),p);}ByteArrayOutputStream out=new ByteArrayOutputStream();if(!bitmap.compress(Bitmap.CompressFormat.JPEG,95,out))throw new IOException();return out.toByteArray();}finally{bitmap.recycle();}}
+ private void clear(){if(exportBlocked())return;generation++;if(source!=null){source.recycle();source=null;}if(cropped!=null){cropped.recycle();cropped=null;}savedGalleryImage=null;refreshGalleryActions();confirmed.setChecked(false);quality.setText("");message(getString(R.string.pk_072));updateMeasurement();showStage(0);}
  @Override protected void onDestroy(){releaseSplashGate();closed=true;generation++;worker.shutdown();if(detector!=null)detector.close();if(source!=null)source.recycle();if(cropped!=null)cropped.recycle();pendingExport=null;if(isFinishing())removeCapture();super.onDestroy();}
  private final class PrintPreview extends View{
   private final Paint p=new Paint(Paint.ANTI_ALIAS_FLAG|Paint.FILTER_BITMAP_FLAG);

@@ -83,4 +83,12 @@
     <string name="stage_save">保存</string>
     <string name="stage_save_hint">保存前请在编辑页对齐并确认头部参考线。检查仅供参考。</string>
     <string name="stage_paper_preview">打印PDF布局预览</string>
+    <string name="gallery_saved">已保存到 Pictures/PassportKit。</string>
+    <string name="gallery_open">打开已保存的照片</string>
+    <string name="gallery_share">分享已保存的照片</string>
+    <string name="gallery_permission_denied">此 Android 版本需要存储权限才能将 JPG 保存到相册。</string>
+    <string name="gallery_unavailable">无法打开或分享已保存的照片。</string>
+    <string name="export_in_progress">正在保存…</string>
+    <string name="export_disabled">保存前，请添加照片，检查尺寸和裁剪范围，并在编辑页面确认头部辅助线。</string>
+    <string name="gallery_save_failed">无法将 JPG 保存到相册。</string>
 </resources>

@@ -399,8 +399,8 @@
       "description": "Offline passport photo preparation, live guide, Korean/US/Japan print profiles, personal photo editing and print sheets.",
       "platform": "android",
       "applicationId": "com.factory.passportkit",
-      "versionName": "1.6.0",
-      "versionCode": 9,
+      "versionName": "1.5.3",
+      "versionCode": 10,
       "category": "photography",
       "status": "testing",
       "supportedLanguages": [
@@ -429,7 +429,7 @@
       "privacyPolicyUrl": null,
       "privacy": {
         "dataCollected": [],
-        "notes": "Local camera permission for guided capture only; no network, tracking or identity recognition. Temporary capture cache removed after result; exports to user-selected location. Ads and billing disabled."
+        "notes": "Local camera permission for guided capture only; no network, tracking or identity recognition. Temporary capture cache removed after result. JPEGs are saved to Pictures/PassportKit only on request; Android 8–9 may request write storage permission. PDFs use the system save picker. External sharing starts only on user request. Ads and billing disabled."
       }
     },
     {
