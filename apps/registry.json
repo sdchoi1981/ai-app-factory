@@ -16,12 +16,15 @@
       ],
       "monetization": {
         "ads": false,
-        "analytics": false
+        "analytics": false,
+        "testBannerPrepared": true
       },
       "buildConfiguration": {
         "path": "apps/unitkit",
         "testFile": "test-conversions.js",
-        "sharedPackages": []
+        "sharedPackages": [
+          "ads"
+        ]
       },
       "releaseConfiguration": {
         "enabled": false,
@@ -50,14 +53,16 @@
       ],
       "monetization": {
         "ads": false,
-        "analytics": false
+        "analytics": false,
+        "testBannerPrepared": true
       },
       "buildConfiguration": {
         "path": "apps/datekit",
         "testFile": "test.mjs",
         "sharedPackages": [
           "ui",
-          "core"
+          "core",
+          "ads"
         ]
       },
       "releaseConfiguration": {
@@ -86,14 +91,16 @@
       ],
       "monetization": {
         "ads": false,
-        "analytics": false
+        "analytics": false,
+        "testBannerPrepared": true
       },
       "buildConfiguration": {
         "path": "apps/calckit",
         "testFile": "test.mjs",
         "sharedPackages": [
           "ui",
-          "core"
+          "core",
+          "ads"
         ]
       },
       "releaseConfiguration": {
@@ -122,14 +129,16 @@
       ],
       "monetization": {
         "ads": false,
-        "analytics": false
+        "analytics": false,
+        "testBannerPrepared": true
       },
       "buildConfiguration": {
         "path": "apps/loankit",
         "testFile": "test.mjs",
         "sharedPackages": [
           "ui",
-          "core"
+          "core",
+          "ads"
         ]
       },
       "releaseConfiguration": {
@@ -158,14 +167,16 @@
       ],
       "monetization": {
         "ads": false,
-        "analytics": false
+        "analytics": false,
+        "testBannerPrepared": true
       },
       "buildConfiguration": {
         "path": "apps/discountkit",
         "testFile": "test.mjs",
         "sharedPackages": [
           "ui",
-          "core"
+          "core",
+          "ads"
         ]
       },
       "releaseConfiguration": {
@@ -194,14 +205,16 @@
       ],
       "monetization": {
         "ads": false,
-        "analytics": false
+        "analytics": false,
+        "testBannerPrepared": true
       },
       "buildConfiguration": {
         "path": "apps/timekit",
         "testFile": "test.mjs",
         "sharedPackages": [
           "ui",
-          "core"
+          "core",
+          "ads"
         ]
       },
       "releaseConfiguration": {
@@ -230,14 +243,16 @@
       ],
       "monetization": {
         "ads": false,
-        "analytics": false
+        "analytics": false,
+        "testBannerPrepared": true
       },
       "buildConfiguration": {
         "path": "apps/jsonkit",
         "testFile": "test.mjs",
         "sharedPackages": [
           "ui",
-          "core"
+          "core",
+          "ads"
         ]
       },
       "releaseConfiguration": {
@@ -266,14 +281,16 @@
       ],
       "monetization": {
         "ads": false,
-        "analytics": false
+        "analytics": false,
+        "testBannerPrepared": true
       },
       "buildConfiguration": {
         "path": "apps/textkit",
         "testFile": "test.mjs",
         "sharedPackages": [
           "ui",
-          "core"
+          "core",
+          "ads"
         ]
       },
       "releaseConfiguration": {
@@ -302,14 +319,16 @@
       ],
       "monetization": {
         "ads": false,
-        "analytics": false
+        "analytics": false,
+        "testBannerPrepared": true
       },
       "buildConfiguration": {
         "path": "apps/randomkit",
         "testFile": "test.mjs",
         "sharedPackages": [
           "ui",
-          "core"
+          "core",
+          "ads"
         ]
       },
       "releaseConfiguration": {
@@ -338,14 +357,16 @@
       ],
       "monetization": {
         "ads": false,
-        "analytics": false
+        "analytics": false,
+        "testBannerPrepared": true
       },
       "buildConfiguration": {
         "path": "apps/qrkit",
         "testFile": "test.mjs",
         "sharedPackages": [
           "ui",
-          "core"
+          "core",
+          "ads"
         ]
       },
       "releaseConfiguration": {
