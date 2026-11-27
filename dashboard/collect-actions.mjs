@@ -18,7 +18,7 @@ export function extractRuns(apps, history, jobs, artifacts, platform, test = fal
     const ids = {};
     for (const [key,suffix] of Object.entries(test ? {test:'test-results'} : platform === 'android' ? {apk:'debug-APK',aab:'unsigned-release-AAB'} : {web:'web'})) {
       const artifact = artifacts.find(a => a.name === prefix + suffix && !a.expired && Number.isSafeInteger(a.id) && a.id > 0);
-      if (artifact) ids[key] = artifact.id;
+      if (artifact && (test || result === 'success')) ids[key] = artifact.id;
     }
     output.push({ appId:app.appId,versionName:app.versionName,runId:history.id,updatedAt:history.updated_at,build:result,artifacts:ids });
   }
@@ -52,7 +52,7 @@ async function collect() {
     if (!registryCache.has(sha)) {
       const d = await get('/contents/apps/registry.json?ref=' + sha);
       if (d.encoding !== 'base64') throw Error('Unsupported registry encoding');
-      registryCache.set(sha,JSON.parse(Buffer.from(d.content,'base64').toString('utf8')).apps.filter(a=>allowed.has(a.appId)));
+      registryCache.set(sha,JSON.parse(Buffer.from(d.content,'base64').toString('utf8')).apps);
     }
     return registryCache.get(sha);
   }
@@ -65,6 +65,7 @@ async function collect() {
       const jobs = await pages('/actions/runs/' + run.id + '/jobs','jobs');
       const artifacts = await pages('/actions/runs/' + run.id + '/artifacts','artifacts');
       for (const row of extractRuns(apps,run,jobs,artifacts,platform,isTest)) {
+        if (!allowed.has(row.appId)) continue;
         const key=run.head_sha+':'+row.appId+':'+row.versionName;
         if (isTest) {if (!testRows.has(key)) testRows.set(key,row.build);}
         else rows.push({...row,test:testRows.get(key) ?? null});

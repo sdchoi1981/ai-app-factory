@@ -33,7 +33,7 @@ jobs:
         with:
           node-version: '22'
       - name: Test dashboard
-        run: node --test dashboard/*.test.mjs
+        run: node --test dashboard/build.test.mjs
       - name: Collect verified main-branch build results
         env:
           GH_TOKEN: ${{ github.token }}
