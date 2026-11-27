@@ -9,3 +9,7 @@ Name-ranked search fixes the first CI failure. Adds four sand boas, four other l
 ## 1.2
 
 100 living taxa: 24 detailed entries and 76 basic taxonomic entries checked against Reptile Database genus lists (Eryx, Acanthophis, Crotalus, Hydrophis). Basic entries deliberately omit unverified species-specific distribution and morphology; Korean labels may be descriptive or scientific epithets. Quiz uses 24 detailed entries only. Collection and favorites stored locally. Eight-entry favorite-snake tournament. Native Korean offline TTS only, if installed; no network voices. Actual speech and UI require device testing. Photos optional via separately verified build pipeline; ordinary APK contains no photo files until a verified pack is supplied.
+
+## 1.3
+
+Adds level badges based on unique quiz discoveries, six curated photo candidates, four tail movement concept animations, explicitly synthetic warning-sound demonstrations, three source-backed living-species length examples and two dated conservation entries. Reduced-motion preference is honored; sound is user initiated, short, low volume and stops on navigation. Photo and extended catalog builds verify external data; ordinary 100-entry APK remains independent of external data fetches. Device/UI testing still required.
