@@ -78,4 +78,9 @@
     <string name="pk_076">카메라를 열 수 없습니다. 취소 후 JPG를 선택하세요.</string>
     <string name="pk_077">촬영 저장 실패</string>
     <string name="pk_078">촬영 실패</string>
+    <string name="stage_source">사진</string>
+    <string name="stage_edit">편집</string>
+    <string name="stage_save">저장</string>
+    <string name="stage_save_hint">편집 단계에서 머리 가이드를 맞추고 확인하세요. 검사는 참고용입니다.</string>
+    <string name="stage_paper_preview">인화 PDF 배치 미리보기</string>
 </resources>

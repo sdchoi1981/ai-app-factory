@@ -78,4 +78,9 @@
     <string name="pk_076">Camera unavailable. Cancel and choose a JPEG.</string>
     <string name="pk_077">Capture save failed</string>
     <string name="pk_078">Capture failed</string>
+    <string name="stage_source">Photo</string>
+    <string name="stage_edit">Edit</string>
+    <string name="stage_save">Save</string>
+    <string name="stage_save_hint">Align and confirm the head guides in Edit before saving. Checks are advisory.</string>
+    <string name="stage_paper_preview">Print PDF layout preview</string>
 </resources>
