@@ -1,0 +1,29 @@
+// Test-only SDK. Standard release/debug builds are unchanged.
+def testAds = providers.gradleProperty('factoryTestAds').orElse('false').get()
+if (!(testAds in ['true','false'])) throw new GradleException('Invalid factoryTestAds')
+def adsRoot = rootProject.file('../../packages/ads/android')
+android {
+    sourceSets {
+        main.java.srcDir new File(adsRoot, testAds == 'true' ? 'banner-test/java' : 'banner-off/java')
+    }
+}
+if (testAds == 'true') {
+    android {
+        buildTypes {
+            debug {
+                applicationIdSuffix '.adtest'
+                versionNameSuffix '-adtest'
+            }
+        }
+        sourceSets {
+            debug.manifest.srcFile new File(adsRoot, 'banner-test/AndroidManifest.xml')
+        }
+    }
+    androidComponents.beforeVariants(androidComponents.selector().withBuildType('release')) { variantBuilder ->
+        variantBuilder.enable = false
+    }
+    dependencies {
+        implementation 'com.google.android.gms:play-services-ads:25.4.0'
+        implementation 'com.google.android.ump:user-messaging-platform:4.0.0'
+    }
+}
