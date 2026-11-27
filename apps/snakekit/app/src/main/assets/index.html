@@ -112,7 +112,7 @@ function makerArt(input){
  if(dash)make('path',{d,fill:'none',stroke:v.accent,'stroke-width':v.pattern==='bands'||v.pattern==='pied'?w-3:w*.55,'stroke-linecap':v.pattern==='spots'?'round':'butt','stroke-dasharray':dash});
  if(v.pattern==='diamond'){
   const track=make('path',{d,fill:'none',stroke:'none'});
-  const length=track.getTotalLength();for(let x=22;x<length-18;x+=29){const p=track.getPointAtLength(x),q=track.getPointAtLength(Math.min(length,x+1)),a=Math.atan2(q.y-p.y,q.x-p.x)*180/Math.PI;make('path',{d:'M-8 0 L0 '+(-w*.33)+' L8 0 L0 '+(w*.33)+' Z',fill:v.accent,stroke:v.color,'stroke-width':1,transform:'translate('+p.x+' '+p.y+') rotate('+a+')'})}
+  try{const length=track.getTotalLength();for(let x=22;x<length-18;x+=29){const p=track.getPointAtLength(x),q=track.getPointAtLength(Math.min(length,x+1)),a=Math.atan2(q.y-p.y,q.x-p.x)*180/Math.PI;make('path',{d:'M-8 0 L0 '+(-w*.33)+' L8 0 L0 '+(w*.33)+' Z',fill:v.accent,stroke:v.color,'stroke-width':1,transform:'translate('+p.x+' '+p.y+') rotate('+a+')'})}}catch{/* dashed pattern is the fallback on older WebViews */}
  }
  const tail=make('g',{class:'maker-tail'});
  make('path',{d:'M65 143 Q45 143 33 124',stroke:v.color,fill:'none','stroke-width':Math.max(6,w*.47),'stroke-linecap':'round'},tail);
@@ -159,7 +159,7 @@ function maker(){
  form.append(actions);
  gallery.append(node('h3','나의 상상 뱀 도감 ('+makerSaved.length+'/'+MAKER_LIMIT+')'));
  if(!makerSaved.length)gallery.append(node('p','아직 저장한 뱀이 없어요.'));
- for(const item of makerSaved){const card=node('article',undefined,'info');card.append(makerArt(item.config),node('h3',item.config.name),node('p',item.config.length.toFixed(1)+'m · '+MAKER_OPTIONS.tail[item.config.tail]),btn('다시 편집',()=>{makerEditing=item.id;makerDraft={...item.config};maker()}),btn('삭제',()=>{if(!confirm(item.config.name+'을(를) 삭제할까요?'))return;const next=makerSaved.filter(x=>x.id!==item.id);if(!makerStore(next)){status.textContent='삭제하지 못했어요.';return}if(makerEditing===item.id){makerEditing=null;makerDraft=makerDefault()}maker()}));gallery.append(card)}
+ for(const item of makerSaved){const card=node('article',undefined,'info');card.append(makerArt(item.config),node('h3',item.config.name),node('p',item.config.length.toFixed(1)+'m · '+MAKER_OPTIONS.tail[item.config.tail]),btn('다시 편집',()=>{makerEditing=item.id;makerDraft={...item.config};maker()}),btn('삭제',()=>{if(card.querySelector('.maker-confirm'))return;const prompt=node('div',undefined,'maker-confirm');prompt.append(node('p',item.config.name+'을(를) 삭제할까요?'),btn('삭제 확인',()=>{const next=makerSaved.filter(x=>x.id!==item.id);if(!makerStore(next)){status.textContent='삭제하지 못했어요.';return}if(makerEditing===item.id){makerEditing=null;makerDraft=makerDefault()}maker()}),btn('취소',()=>prompt.remove()));card.append(prompt)}));gallery.append(card)}
  redraw();
 }
 
