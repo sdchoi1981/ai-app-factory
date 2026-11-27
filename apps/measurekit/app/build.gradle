@@ -9,6 +9,10 @@ android {
         versionCode 1
         versionName '1.0.0'
     }
+    sourceSets.main {
+        java.srcDirs += '../../../packages/ui/android/java'
+        res.srcDirs += '../../../packages/ui/android/res'
+    }
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17
         targetCompatibility JavaVersion.VERSION_17

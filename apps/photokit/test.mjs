@@ -2,3 +2,8 @@ import assert from 'node:assert/strict';import {readFileSync,mkdtempSync,rmSync}
 const manifest=readFileSync('app/src/main/AndroidManifest.xml','utf8'),source=readFileSync('app/src/main/java/factory/kit/MainActivity.java','utf8'),build=readFileSync('app/build.gradle','utf8');assert.ok(!manifest.includes('android.permission.INTERNET'));assert.ok(!manifest.includes('READ_MEDIA_IMAGES'));assert.ok(manifest.includes('android:allowBackup="false"'));assert.ok(build.includes("applicationId 'com.factory.photokit'"));assert.ok(source.includes("jpegLimit"));assert.ok(source.includes('String t(String en,String ko,String ja)'));console.log('PhotoKit: manifest, package and feature wiring checked');
 
 assert.match(source,/image\(u,640\)/);assert.match(source,/ticket!=previewGeneration/);assert.match(source,/completed\.length\(\)/);assert.match(source,/setWorking\(true\)/);assert.match(manifest,/@style\/FactoryTheme/);console.log('Bounded preview, output size and theme wiring verified');
+
+assert.match(source,/selected\.get\(previewIndex\)/);
+assert.match(source,/target<0\|\|target>=selected\.size\(\)/);
+assert.match(source,/DocumentsContract\.deleteDocument/);
+console.log('Batch preview navigation and incomplete document cleanup wiring verified');
