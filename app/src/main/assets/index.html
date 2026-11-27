@@ -1,5 +1,173 @@
-<!doctype html><html lang="ko"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>UnitKit</title><style>
-*{box-sizing:border-box}body{margin:0;background:#f1f5f9;color:#14243a;font:16px system-ui}body.dark{background:#0b1424;color:#eef5ff}main{max-width:620px;margin:auto;padding:20px}header{display:flex;align-items:center;gap:10px}h1{flex:1}button,select,input{font:inherit;color:inherit;background:transparent;border:1px solid #94a3b8;border-radius:10px;padding:12px}button{cursor:pointer}.cats{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin:16px 0}.active{background:#175cdb;color:white}.card{border:1px solid #94a3b8;border-radius:18px;padding:18px;display:grid;gap:12px}input,select{width:100%}input{font-size:28px}output{font-size:32px;font-weight:bold;overflow-wrap:anywhere;color:#397ce7}.line{display:flex;justify-content:space-between;gap:10px;padding:12px;border-bottom:1px solid #94a3b8}small{opacity:.8}footer{text-align:center;padding:20px}button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid #397ce7}</style><main><header><h1>UnitKit</h1><button id="lang">EN</button><button id="theme" aria-label="Theme">◐</button></header><div id="cats" class="cats"></div><section class="card"><label id="fl" for="from">변환할 단위</label><select id="from"></select><input id="amount" inputmode="decimal" value="1" aria-label="Value"><button id="swap" aria-label="Swap units">⇅</button><label id="tl" for="to">결과 단위</label><select id="to"></select><output id="result" aria-live="polite"></output><button id="copy">복사</button><small id="status" role="status"></small></section><h2 id="al">전체 단위 변환</h2><div id="all"></div><footer id="footer"></footer></main><script>
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>UnitKit</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    --page: #f1f5f9;
+    --surface: #fff;
+    --text: #14243a;
+    --muted: #475569;
+    --border: #64748b;
+    --line: #d8e1eb;
+    --accent: #174da5;
+    --result: #e9f1ff;
+    --error: #a32222;
+    --focus: #1762cf;
+    color-scheme: light;
+    margin: 0;
+    background: var(--page);
+    color: var(--text);
+    font: 1rem system-ui, sans-serif;
+  }
+  body.dark {
+    --page: #0b1424;
+    --surface: #152238;
+    --text: #eef5ff;
+    --muted: #b9c9df;
+    --border: #8296b4;
+    --line: #40516c;
+    --accent: #a8c8ff;
+    --result: #24395b;
+    --error: #ffb9b5;
+    --focus: #98beff;
+    color-scheme: dark;
+  }
+  main { max-width: 38rem; margin: auto; padding: 1rem; }
+  header { display: flex; align-items: center; gap: .5rem; }
+  h1 { flex: 1; margin: 0; font-size: 1.75rem; letter-spacing: -.04em; }
+  h2 { margin: 1.5rem 0 .6rem; font-size: 1.125rem; }
+  button, select, input {
+    min-width: 0;
+    min-height: 44px;
+    padding: .55rem .7rem;
+    border: 1px solid var(--border);
+    border-radius: .65rem;
+    background: var(--surface);
+    color: inherit;
+    font: inherit;
+  }
+  button { cursor: pointer; }
+  button:disabled { cursor: default; opacity: .55; }
+  button[aria-pressed="true"] {
+    border-color: var(--accent);
+    background: var(--accent);
+    color: var(--surface);
+    font-weight: 700;
+  }
+  :focus { outline: 3px solid var(--focus); outline-offset: 2px; }
+  :focus:not(:focus-visible) { outline: none; }
+  .cats {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: .45rem;
+    margin: 1rem 0;
+  }
+  .cats button { overflow-wrap: anywhere; }
+  .card {
+    display: grid;
+    gap: .85rem;
+    padding: 1rem;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 1rem;
+  }
+  .field { display: grid; min-width: 0; gap: .35rem; }
+  label { font-size: .875rem; font-weight: 650; }
+  input, select { width: 100%; }
+  input { font-size: 1.5rem; font-variant-numeric: tabular-nums; }
+  input[aria-invalid="true"] { border-color: var(--error); }
+  .units {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    align-items: end;
+    gap: .5rem;
+  }
+  #swap, #theme { min-width: 44px; }
+  .result-panel {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .6rem;
+    padding: .75rem;
+    border-radius: .75rem;
+    background: var(--result);
+  }
+  #result-label { display: block; color: var(--muted); font-size: .875rem; }
+  output {
+    display: block;
+    color: var(--accent);
+    font-size: 1.6rem;
+    font-weight: 750;
+    font-variant-numeric: tabular-nums;
+    overflow-wrap: anywhere;
+    user-select: text;
+  }
+  #copy { flex: none; }
+  #status { color: var(--muted); font-size: .875rem; }
+  #status:empty { margin-top: -.85rem; }
+  #status.error { color: var(--error); }
+  #all {
+    margin: 0;
+    border: 1px solid var(--line);
+    border-radius: .8rem;
+    background: var(--surface);
+  }
+  #all:empty { display: none; }
+  .line { display: flex; justify-content: space-between; gap: .75rem; padding: .65rem .85rem; }
+  .line + .line { border-top: 1px solid var(--line); }
+  dd { margin: 0; text-align: end; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+  footer { text-align: center; padding: 1.25rem 0 .5rem; color: var(--muted); font-size: .875rem; }
+  @media (max-width: 22rem) {
+    .cats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    main, .card { padding: .75rem; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>UnitKit</h1>
+    <button id="lang" type="button">EN</button>
+    <button id="theme" type="button" aria-label="어두운 테마">◐</button>
+  </header>
+  <div id="cats" class="cats" role="group" aria-label="변환 범주"></div>
+  <section id="converter" class="card" aria-label="단위 변환">
+    <div class="field">
+      <label id="amount-label" for="amount">입력값</label>
+      <input id="amount" inputmode="decimal" value="1" autocomplete="off"
+        spellcheck="false" aria-describedby="status">
+    </div>
+    <div class="units">
+      <div class="field">
+        <label id="fl" for="from">변환할 단위</label>
+        <select id="from"></select>
+      </div>
+      <button id="swap" type="button" aria-label="단위 바꾸기">⇄</button>
+      <div class="field">
+        <label id="tl" for="to">결과 단위</label>
+        <select id="to"></select>
+      </div>
+    </div>
+    <div class="result-panel">
+      <div>
+        <span id="result-label">변환 결과</span>
+        <output id="result" for="amount from to" aria-labelledby="result-label" aria-live="polite"></output>
+      </div>
+      <button id="copy" type="button" disabled>복사</button>
+    </div>
+    <small id="status" role="status"></small>
+  </section>
+  <section id="all-section" aria-labelledby="al">
+    <h2 id="al">전체 단위 변환</h2>
+    <dl id="all"></dl>
+  </section>
+  <footer id="footer"></footer>
+</main>
+<script>
 const data={
 length:['길이','Length',[['m',1],['km',1000],['cm',.01],['mm',.001],['μm',1e-6],['in',.0254],['ft',.3048],['yd',.9144],['mi',1609.344],['nmi',1852]]],
 mass:['무게','Mass',[['kg',1],['g',.001],['mg',1e-6],['t',1000],['lb',.45359237],['oz',.028349523125],['st',6.35029318]]],
@@ -13,12 +181,244 @@ pressure:['압력','Pressure',[['Pa',1],['kPa',1000],['MPa',1e6],['bar',1e5],['a
 energy:['에너지','Energy',[['J',1],['kJ',1000],['cal',4.184],['kcal',4184],['Wh',3600],['kWh',3600000]]],
 angle:['각도','Angle',[['deg',Math.PI/180],['rad',1],['grad',Math.PI/200],['turn',2*Math.PI]]],
 power:['전력','Power',[['W',1],['kW',1000],['MW',1e6],['hp',745.699871582]]]};
-function convert(v,a,b,cat){if(cat==='temp'){const c=a[0]==='°F'?(v-32)*5/9:a[0]==='K'?v-273.15:v;if(c < -273.15-1e-9)throw Error('absolute');return b[0]==='°F'?c*9/5+32:b[0]==='K'?c+273.15:c}return v*a[1]/b[1]}
-function fmt(v){return Number.isFinite(v)?String(Number(v.toPrecision(12))):'—'}
+function convert(value, from, to, category) {
+  if (category === 'temp') {
+    let celsius = value;
+    if (from[0] === '°F') {
+      const offset = value - 32;
+      celsius = Number.isFinite(offset * 5) ? offset * 5 / 9 : offset / 9 * 5;
+    } else if (from[0] === 'K') {
+      celsius = value - 273.15;
+    }
+    if (celsius < -273.15 - 1e-9) throw Error('absolute');
+    if (from === to) return value;
+    if (to[0] === '°F') {
+      const scaled = celsius * 9;
+      return (Number.isFinite(scaled) ? scaled / 5 : celsius / 5 * 9) + 32;
+    }
+    return to[0] === 'K' ? celsius + 273.15 : celsius;
+  }
+
+  if (from === to) return value;
+  const scaled = value * from[1];
+  // A subnormal intermediate can lose precision before dividing by the target factor.
+  if (value === 0 || (Number.isFinite(scaled) && Math.abs(scaled) >= 2 ** -1022)) {
+    return scaled / to[1];
+  }
+  return value * (from[1] / to[1]);
+}
+
+function fmt(value) {
+  if (!Number.isFinite(value)) return '—';
+  const rounded = Number(value.toPrecision(12));
+  return String(Number.isFinite(rounded) ? rounded : value);
+}
+
+function parseAmount(raw) {
+  const normalized = raw.trim().replace(/−/g, '-').replace(',', '.');
+  if (!/^[-+]?(?:\d+(?:\.\d*)?|\.\d+)(?:e[-+]?\d+)?$/i.test(normalized)) {
+    throw Error('input');
+  }
+  const value = Number(normalized);
+  if (!Number.isFinite(value)) throw Error('input');
+  return value;
+}
+
 // UI
-const $=id=>document.getElementById(id);let prefs={};try{prefs=JSON.parse(localStorage.getItem('unitkit')||'{}')}catch{}let lang=prefs.lang==='en'?'en':prefs.lang==='ko'?'ko':navigator.language.startsWith('ko')?'ko':'en',cat=data[prefs.cat]?prefs.cat:'length',dark=!!prefs.dark,choices=prefs.choices||{},last='';
-function save(){try{localStorage.setItem('unitkit',JSON.stringify({lang,cat,dark,choices}))}catch{}}
-function update(){const u=data[cat][2],a=u[+$('from').value],b=u[+$('to').value],raw=$('amount').value.trim();choices[cat]=[+$('from').value,+$('to').value];save();$('all').replaceChildren();last='';try{if(!/^[-+]?(?:\d+(?:\.\d*)?|\.\d+)(?:e[-+]?\d+)?$/i.test(raw)||!Number.isFinite(Number(raw)))throw Error('input');last=fmt(convert(Number(raw),a,b,cat));$('result').textContent=last+' '+b[0];$('status').textContent='';for(const x of u){const row=document.createElement('div');row.className='line';const n=document.createElement('span'),r=document.createElement('b');n.textContent=x[0];r.textContent=fmt(convert(Number(raw),a,x,cat));row.append(n,r);$('all').append(row)}}catch(e){$('result').textContent='—';$('status').textContent=e.message==='absolute'?(lang==='ko'?'절대영도보다 낮을 수 없습니다.':'Below absolute zero.'):(lang==='ko'?'유효한 숫자를 입력하세요.':'Enter a valid number.')}}
-function render(){const ko=lang==='ko';document.documentElement.lang=lang;document.body.classList.toggle('dark',dark);$('lang').textContent=ko?'EN':'한국어';$('fl').textContent=ko?'변환할 단위':'From';$('tl').textContent=ko?'결과 단위':'To';$('al').textContent=ko?'전체 단위 변환':'All conversions';$('copy').textContent=ko?'복사':'Copy';$('footer').textContent=ko?'오프라인 · 입력값을 전송하지 않음':'Offline · Your input stays on your device';$('cats').replaceChildren();for(const [k,d] of Object.entries(data)){const b=document.createElement('button');b.textContent=d[ko?0:1];b.className=k===cat?'active':'';b.onclick=()=>{cat=k;render()};$('cats').append(b)}const u=data[cat][2];for(const id of ['from','to']){$(id).replaceChildren();u.forEach((x,i)=>{const o=document.createElement('option');o.value=i;o.textContent=x[0];$(id).append(o)})}const c=choices[cat]||[0,1];$('from').selectedIndex=u[c[0]]?c[0]:0;$('to').selectedIndex=u[c[1]]?c[1]:1;update()}
-$('from').onchange=$('to').onchange=$('amount').oninput=update;$('lang').onclick=()=>{lang=lang==='ko'?'en':'ko';render()};$('theme').onclick=()=>{dark=!dark;render()};$('swap').onclick=()=>{const a=$('from').value;$('from').value=$('to').value;$('to').value=a;update()};$('copy').onclick=async()=>{if(!last)return;try{await navigator.clipboard.writeText(last);$('status').textContent=lang==='ko'?'복사 완료':'Copied'}catch{$('status').textContent=lang==='ko'?'길게 눌러 복사하세요':'Long press to copy'}};render();
-</script></html>
+const $ = id => document.getElementById(id);
+const labels = {
+  ko: {
+    nextLanguage: 'English', theme: '어두운 테마', categories: '변환 범주', converter: '단위 변환',
+    amount: '입력값', from: '변환할 단위', to: '결과 단위', swap: '단위 바꾸기',
+    result: '변환 결과', copy: '복사', all: '전체 단위 변환',
+    footer: '오프라인 · 입력값을 전송하지 않음',
+    input: '유효한 숫자를 입력하세요.', absolute: '절대영도보다 낮을 수 없습니다.',
+    range: '결과가 표시할 수 있는 범위를 벗어났습니다.',
+    copied: '복사 완료', copyFailed: '결과를 길게 눌러 복사하세요.'
+  },
+  en: {
+    nextLanguage: '한국어', theme: 'Dark theme', categories: 'Conversion categories', converter: 'Unit conversion',
+    amount: 'Amount', from: 'From', to: 'To', swap: 'Swap units',
+    result: 'Result', copy: 'Copy', all: 'All conversions',
+    footer: 'Offline · Your input stays on your device',
+    input: 'Enter a valid number.', absolute: 'Below absolute zero.',
+    range: 'The result is out of range.',
+    copied: 'Copied', copyFailed: 'Long press the result to copy.'
+  }
+};
+const own = (object, key) => Object.prototype.hasOwnProperty.call(object, key);
+const record = value => value !== null && typeof value === 'object' && !Array.isArray(value);
+
+function readPreferences() {
+  try {
+    const saved = JSON.parse(localStorage.getItem('unitkit'));
+    if (record(saved)) return saved;
+  } catch {
+    // Conversion remains available when storage is inaccessible.
+  }
+  return {};
+}
+
+const prefs = readPreferences();
+let lang = prefs.lang === 'en' || prefs.lang === 'ko' ? prefs.lang
+  : navigator.language.startsWith('ko') ? 'ko' : 'en';
+let cat = typeof prefs.cat === 'string' && own(data, prefs.cat) ? prefs.cat : 'length';
+let dark = prefs.dark === true;
+const choices = record(prefs.choices) ? prefs.choices : {};
+let last = '';
+let revision = 0;
+
+function save() {
+  try {
+    localStorage.setItem('unitkit', JSON.stringify({ lang, cat, dark, choices }));
+  } catch {
+    // Preferences are optional.
+  }
+}
+
+function setStatus(message = '', error = false) {
+  $('status').textContent = message;
+  $('status').classList.toggle('error', error);
+}
+
+function update() {
+  revision++;
+  const units = data[cat][2];
+  const from = units[$('from').selectedIndex];
+  const to = units[$('to').selectedIndex];
+  const text = labels[lang];
+  const all = $('all');
+  all.replaceChildren();
+  $('all-section').hidden = true;
+  $('copy').disabled = true;
+  $('amount').removeAttribute('aria-invalid');
+  $('result').textContent = '—';
+  setStatus();
+  last = '';
+
+  let amount;
+  try {
+    amount = parseAmount($('amount').value);
+    const result = convert(amount, from, to, cat);
+    if (Number.isFinite(result)) {
+      last = fmt(result);
+      $('result').textContent = last + ' ' + to[0];
+      $('copy').disabled = false;
+    } else {
+      setStatus(text.range, true);
+    }
+  } catch (error) {
+    $('amount').setAttribute('aria-invalid', 'true');
+    setStatus(error.message === 'absolute' ? text.absolute : text.input, true);
+    return;
+  }
+
+  const rows = document.createDocumentFragment();
+  for (const unit of units) {
+    const row = document.createElement('div');
+    row.className = 'line';
+    const name = document.createElement('dt');
+    const value = document.createElement('dd');
+    name.textContent = unit[0];
+    value.textContent = fmt(convert(amount, from, unit, cat));
+    row.append(name, value);
+    rows.append(row);
+  }
+  all.append(rows);
+  $('all-section').hidden = false;
+}
+
+const categoryButtons = new Map();
+for (const key of Object.keys(data)) {
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.addEventListener('click', () => {
+    if (cat === key) return;
+    cat = key;
+    renderUnits();
+    renderLabels();
+    save();
+    update();
+  });
+  categoryButtons.set(key, button);
+  $('cats').append(button);
+}
+
+function renderLabels() {
+  const text = labels[lang];
+  document.documentElement.lang = lang;
+  document.body.classList.toggle('dark', dark);
+  $('lang').textContent = lang === 'ko' ? 'EN' : '한국어';
+  $('lang').lang = lang === 'ko' ? 'en' : 'ko';
+  $('lang').setAttribute('aria-label', text.nextLanguage);
+  $('theme').setAttribute('aria-label', text.theme);
+  $('theme').setAttribute('aria-pressed', String(dark));
+  $('swap').setAttribute('aria-label', text.swap);
+  $('cats').setAttribute('aria-label', text.categories);
+  $('converter').setAttribute('aria-label', text.converter);
+  $('amount-label').textContent = text.amount;
+  $('fl').textContent = text.from;
+  $('tl').textContent = text.to;
+  $('result-label').textContent = text.result;
+  $('copy').textContent = text.copy;
+  $('al').textContent = text.all;
+  $('footer').textContent = text.footer;
+  for (const [key, button] of categoryButtons) {
+    button.textContent = data[key][lang === 'ko' ? 0 : 1];
+    button.setAttribute('aria-pressed', String(key === cat));
+  }
+}
+
+function renderUnits() {
+  const units = data[cat][2];
+  const saved = own(choices, cat) && Array.isArray(choices[cat]) ? choices[cat] : [];
+  for (const [fallback, id] of ['from', 'to'].entries()) {
+    const select = $(id);
+    select.replaceChildren(...units.map(unit => new Option(unit[0])));
+    const index = saved[fallback];
+    select.selectedIndex = Number.isInteger(index) && index >= 0 && index < units.length
+      ? index : fallback;
+  }
+}
+
+function changeUnits() {
+  choices[cat] = [$('from').selectedIndex, $('to').selectedIndex];
+  save();
+  update();
+}
+
+$('from').onchange = $('to').onchange = changeUnits;
+$('amount').oninput = update;
+$('lang').onclick = () => {
+  lang = lang === 'ko' ? 'en' : 'ko';
+  renderLabels();
+  save();
+  update();
+};
+$('theme').onclick = () => {
+  dark = !dark;
+  renderLabels();
+  save();
+};
+$('swap').onclick = () => {
+  const from = $('from').selectedIndex;
+  $('from').selectedIndex = $('to').selectedIndex;
+  $('to').selectedIndex = from;
+  changeUnits();
+};
+$('copy').onclick = async () => {
+  if (!last) return;
+  const current = ++revision;
+  try {
+    await navigator.clipboard.writeText(last);
+    if (current === revision) setStatus(labels[lang].copied);
+  } catch {
+    if (current === revision) setStatus(labels[lang].copyFailed);
+  }
+};
+renderLabels();
+renderUnits();
+update();
+</script>
+</body>
+</html>
