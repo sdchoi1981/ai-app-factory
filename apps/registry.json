@@ -361,11 +361,11 @@
     {
       "appId": "snakekit",
       "appName": "SnakeKit",
-      "description": "Korean offline snake encyclopedia with optional 500-entry edition, games, exploration and fictional snake creator.",
+      "description": "Offline snake encyclopedia, optional 500-entry edition, fictional creator and touch-controlled snake playground.",
       "platform": "android",
       "applicationId": "com.factory.snakekit",
-      "versionName": "1.4.0",
-      "versionCode": 5,
+      "versionName": "1.5.0",
+      "versionCode": 6,
       "category": "education",
       "status": "testing",
       "supportedLanguages": [

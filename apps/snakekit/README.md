@@ -23,3 +23,7 @@ The initial GBIF match returned no qualifying genera. The importer now uses an e
 ## 1.4 Snake Maker
 
 Separate fictional snake creator, with live procedural SVG illustration, length/girth, four head shapes, six tails, six patterns, four backgrounds, body/pattern/eye colors, six morph-inspired presets, optional tail movement respecting reduced-motion preference, and 30 locally saved designs. Create/edit/delete (confirmation on delete), validated configuration, no account, sharing, external requests, or actual species claims. Existing 100/500 catalog and six-photo pipelines unchanged. Name is entered locally and is not transmitted. Test coverage includes normalization, invalid options, lengths, storage round-trip, edits, duplicates and capacity. Actual rendering, animation and local retention require device validation.
+
+## 1.5 imaginary snake playground
+
+Select any locally saved fictional snake or the built-in design, explore land or water using touch or direction buttons, adjust simulated speed, pause and reset. Canvas renders the selected colors, head, tail, pattern, length and thickness with a bounded trail animation. No real animal behavior, speed or swimming claim; this is an explicitly fictional toy. Stops animation when navigating away or hiding the app, never auto-resumes after hiding. No network or new permissions. Regression tests for deterministic movement, bounds, time step, speed, terrain and trail. On-device usability still requires validation.
