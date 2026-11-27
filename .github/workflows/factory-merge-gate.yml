@@ -1,0 +1,63 @@
+name: Factory merge gate
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: factory-merge-gate-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  gate:
+    name: Factory required checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate registry
+        run: node scripts/validate-apps.mjs
+      - name: Test factory and all registered apps
+        run: |
+          set -euo pipefail
+          node --test packages/test.mjs scripts/test-factory.mjs dashboard/build.test.mjs
+          node scripts/validate-apps.mjs --matrix > "$RUNNER_TEMP/factory-apps.json"
+          while IFS= read -r app; do
+            node scripts/test-app.mjs "$app"
+          done < <(jq -r '.include[].appId' "$RUNNER_TEMP/factory-apps.json")
+      - name: Detect Android apps
+        id: android
+        run: |
+          set -euo pipefail
+          echo "present=$(jq 'any(.include[]; .platform == "android")' "$RUNNER_TEMP/factory-apps.json")" >> "$GITHUB_OUTPUT"
+      - uses: actions/setup-java@v4
+        if: steps.android.outputs.present == 'true'
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        if: steps.android.outputs.present == 'true'
+        with:
+          gradle-version: '8.13'
+          cache-read-only: true
+      - uses: android-actions/setup-android@v3
+        if: steps.android.outputs.present == 'true'
+        with:
+          packages: 'platform-tools platforms;android-36 build-tools;36.0.0'
+          log-accepted-android-sdk-licenses: 'false'
+      - name: Build all registered apps
+        run: |
+          set -euo pipefail
+          while IFS= read -r app; do
+            node scripts/build-app.mjs "$app"
+          done < <(jq -r '.include[].appId' "$RUNNER_TEMP/factory-apps.json")
+          while IFS= read -r path; do
+            "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify "$path/app/build/outputs/apk/debug/app-debug.apk"
+            "$ANDROID_HOME/build-tools/36.0.0/aapt" dump badging "$path/app/build/outputs/apk/debug/app-debug.apk" | grep -F "targetSdkVersion:'36'"
+            test -s "$path/app/build/outputs/bundle/release/app-release.aab"
+          done < <(jq -r '.include[] | select(.platform == "android") | .path' "$RUNNER_TEMP/factory-apps.json")
