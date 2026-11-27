@@ -1,0 +1,96 @@
+name: Build Android apps
+on:
+  pull_request:
+    paths:
+      - 'apps/**'
+      - 'packages/**'
+      - 'scripts/**'
+      - '.github/workflows/build-android.yml'
+      - '.github/workflows/validate-apps.yml'
+  push:
+    branches: [main, 'codex/**']
+    paths:
+      - 'apps/**'
+      - 'packages/**'
+      - 'scripts/**'
+      - '.github/workflows/build-android.yml'
+      - '.github/workflows/validate-apps.yml'
+  workflow_dispatch:
+    inputs:
+      app:
+        description: Android app ID or all
+        default: all
+        type: string
+permissions:
+  contents: read
+concurrency:
+  group: android-build-${{ github.ref }}-${{ inputs.app || 'all' }}
+  cancel-in-progress: true
+jobs:
+  select:
+    uses: ./.github/workflows/validate-apps.yml
+    with:
+      platform: android
+      app: ${{ inputs.app || 'all' }}
+  build:
+    name: ${{ matrix.appName }} Android
+    needs: select
+    if: needs.select.outputs.has-apps == 'true'
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.select.outputs.matrix) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.13'
+          cache-read-only: ${{ github.ref != 'refs/heads/main' }}
+      - name: Set up Android SDK command-line tools
+        uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools platforms;android-36 build-tools;36.0.0'
+          log-accepted-android-sdk-licenses: 'false'
+      - name: Build, lint and verify API 36
+        env:
+          APP_ID: ${{ matrix.appId }}
+          APP_PATH: ${{ matrix.path }}
+        run: |
+          set -euo pipefail
+          {
+            node scripts/build-app.mjs "$APP_ID"
+            apk="$APP_PATH/app/build/outputs/apk/debug/app-debug.apk"
+            "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --verbose "$apk"
+            "$ANDROID_HOME/build-tools/36.0.0/aapt" dump badging "$apk" | grep -F "targetSdkVersion:'36'"
+          } 2>&1 | tee build-android.log
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.appId }}-${{ matrix.appName }}-${{ matrix.versionName }}-debug-APK
+          path: ${{ matrix.path }}/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 7
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.appId }}-${{ matrix.appName }}-${{ matrix.versionName }}-unsigned-release-AAB
+          path: ${{ matrix.path }}/app/build/outputs/bundle/release/app-release.aab
+          if-no-files-found: error
+          retention-days: 7
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ${{ matrix.appId }}-${{ matrix.appName }}-${{ matrix.versionName }}-android-logs
+          path: |
+            build-android.log
+            ${{ matrix.path }}/app/build/reports/lint-results-debug.*
+          if-no-files-found: ignore
+          retention-days: 7

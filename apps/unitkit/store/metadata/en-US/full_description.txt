@@ -1,0 +1,3 @@
+Enter a value and choose two units. UnitKit shows the result and other conversions in the same category. It supports length, mass, temperature, area, volume, speed, time, digital storage, pressure, energy, angle, and power.
+
+Swap the units or copy the result number. The app offers Korean and English and light and dark themes. Conversions are processed on your device.

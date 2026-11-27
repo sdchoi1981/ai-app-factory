@@ -6,3 +6,7 @@ local.properties
 *.keystore
 .env
 .env.*
+apps/*/dist/
+dashboard/dist/
+apps/.registry.lock/
+apps/*/.dist-*/

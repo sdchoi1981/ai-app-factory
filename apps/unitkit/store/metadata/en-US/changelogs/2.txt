@@ -1,0 +1,1 @@
+Updated the input and result layout for narrow screens and keyboards. Added support for decimal commas and the Unicode minus sign.

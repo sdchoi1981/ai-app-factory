@@ -1,0 +1,108 @@
+name: Validate app registry
+on:
+  workflow_call:
+    inputs:
+      platform:
+        description: Optional platform filter
+        type: string
+        default: ''
+      app:
+        description: Registered app ID or all
+        type: string
+        default: all
+    outputs:
+      matrix:
+        description: Validated application matrix
+        value: ${{ jobs.registry.outputs.matrix }}
+      has-apps:
+        description: Whether any applicable apps were found
+        value: ${{ jobs.registry.outputs.has-apps }}
+      run-factory-tests:
+        description: Whether shared factory tooling needs tests
+        value: ${{ jobs.registry.outputs.run-factory-tests }}
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'apps/**'
+      - 'packages/**'
+      - 'templates/**'
+      - 'dashboard/**'
+      - 'scripts/**'
+      - '.github/workflows/**'
+  push:
+    branches: [main, 'codex/**']
+    paths:
+      - 'apps/**'
+      - 'packages/**'
+      - 'templates/**'
+      - 'dashboard/**'
+      - 'scripts/**'
+      - '.github/workflows/**'
+permissions:
+  contents: read
+jobs:
+  registry:
+    # A same-repository Codex push already validates each synchronized head.
+    if: >-
+      ${{ github.event_name != 'pull_request' || github.event.action != 'synchronize' ||
+      github.event.pull_request.head.repo.full_name != github.repository ||
+      !startsWith(github.event.pull_request.head.ref, 'codex/') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      matrix: ${{ steps.select.outputs.matrix }}
+      has-apps: ${{ steps.select.outputs.has-apps }}
+      run-factory-tests: ${{ steps.select.outputs.run-factory-tests }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check registry and app configurations
+        run: node scripts/validate-apps.mjs
+      - name: Select applicable apps
+        id: select
+        env:
+          PLATFORM: ${{ inputs.platform }}
+          APP: ${{ inputs.app }}
+          EVENT: ${{ github.event_name }}
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
+          BEFORE: ${{ github.event.before }}
+        run: |
+          set -euo pipefail
+          args=(--matrix --app "${APP:-all}")
+          if [[ -n "$PLATFORM" ]]; then
+            args+=(--platform "$PLATFORM")
+          fi
+          base=
+          if [[ "$EVENT" == "pull_request" ]]; then
+            base="$(git merge-base "$PR_BASE" HEAD)"
+          elif [[ "$EVENT" == "push" && -n "$BEFORE" ]] && git cat-file -e "$BEFORE^{commit}"; then
+            base="$BEFORE"
+          fi
+          if [[ -n "$base" ]]; then
+            args+=(--base "$base")
+          fi
+
+          # Shared tests run once, including commits that select no registered apps.
+          run_factory=false
+          if [[ -z "$PLATFORM" && "${APP:-all}" == "all" ]]; then
+            if [[ -z "$base" ]]; then
+              run_factory=true
+            elif git diff --quiet "$base" HEAD -- packages/ templates/ scripts/ dashboard/ \
+                apps/registry.json apps/unitkit/ .github/workflows/{test-apps,validate-apps}.yml; then
+              run_factory=false
+            else
+              diff_status=$?
+              if [[ "$diff_status" != 1 ]]; then exit "$diff_status"; fi
+              run_factory=true
+            fi
+          fi
+          printf 'run-factory-tests=%s\n' "$run_factory" >> "$GITHUB_OUTPUT"
+          selected="$(node scripts/validate-apps.mjs "${args[@]}")"
+          matrix="$(jq -c . <<< "$selected")"
+          printf 'matrix=%s\n' "$matrix" >> "$GITHUB_OUTPUT"
+          printf 'has-apps=%s\n' "$(jq '.include | length > 0' <<< "$matrix")" >> "$GITHUB_OUTPUT"

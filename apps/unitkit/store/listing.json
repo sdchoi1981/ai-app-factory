@@ -1,0 +1,20 @@
+{
+  "ko-KR": {
+    "title": "UnitKit 단위 변환기",
+    "shortDescription": "길이, 온도, 부피 등 12개 범주의 단위를 오프라인으로 변환하세요.",
+    "fullDescription": "UnitKit에서 값과 두 단위를 선택하면 변환 결과와 같은 범주의 다른 단위 값이 표시됩니다. 길이, 무게, 온도, 면적, 부피, 속도, 시간, 데이터, 압력, 에너지, 각도, 전력을 지원합니다.\n\n단위 순서를 바꾸거나 결과 숫자를 복사할 수 있습니다. 한국어와 영어, 밝은 테마와 어두운 테마를 지원합니다. 변환은 기기에서 처리됩니다.",
+    "releaseNotes": "입력과 결과 배치를 개선하고 좁은 화면과 키보드 조작에 대응했습니다. 소수점 쉼표와 유니코드 마이너스 입력을 지원합니다."
+  },
+  "en-US": {
+    "title": "UnitKit Unit Converter",
+    "shortDescription": "Convert units offline across 12 categories, including length and temperature.",
+    "fullDescription": "Enter a value and choose two units. UnitKit shows the result and other conversions in the same category. It supports length, mass, temperature, area, volume, speed, time, digital storage, pressure, energy, angle, and power.\n\nSwap the units or copy the result number. The app offers Korean and English and light and dark themes. Conversions are processed on your device.",
+    "releaseNotes": "Updated the input and result layout for narrow screens and keyboards. Added support for decimal commas and the Unicode minus sign."
+  },
+  "ja-JP": {
+    "title": "UnitKit 単位換算",
+    "shortDescription": "長さ、温度、体積など、12種類の単位をオフラインで換算できます。",
+    "fullDescription": "値と換算前後の単位を選ぶと、換算結果と同じ分類の他の単位が表示されます。長さ、質量、温度、面積、体積、速さ、時間、データ容量、圧力、エネルギー、角度、電力に対応しています。\n\n換算する単位を入れ替えたり、結果の数値をコピーしたりできます。アプリの表示言語は韓国語と英語です。ライトモードとダークモードを選べます。換算は端末内で行います。",
+    "releaseNotes": "画面が狭い場合やキーボード操作で使いやすいよう、入力と結果の配置を更新しました。小数点としてのコンマと Unicode のマイナス記号に対応しました。"
+  }
+}

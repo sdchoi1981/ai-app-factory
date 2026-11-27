@@ -1,0 +1,88 @@
+name: Prepare or deploy web app
+on:
+  workflow_dispatch:
+    inputs:
+      app:
+        description: Registered web app ID
+        required: true
+        type: string
+      target:
+        description: Cloudflare Pages environment
+        type: choice
+        options: [preview, production]
+        default: preview
+      publish:
+        description: Deploy to Cloudflare Pages
+        type: boolean
+        default: false
+      production-approved:
+        description: Confirm owner approval for production
+        type: boolean
+        default: false
+permissions:
+  contents: read
+concurrency:
+  group: web-deploy-${{ inputs.app }}-${{ inputs.target }}
+  cancel-in-progress: false
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate request and print deployment plan
+        env:
+          APP: ${{ inputs.app }}
+          TARGET: ${{ inputs.target }}
+          PUBLISH: ${{ inputs.publish }}
+          PRODUCTION_APPROVED: ${{ inputs.production-approved }}
+          ENABLED: ${{ vars.FACTORY_ENABLE_WEB_PUBLISH }}
+        run: |
+          set -euo pipefail
+          if [[ "$APP" == "all" ]]; then
+            echo 'Choose one web app.' >&2
+            exit 1
+          fi
+          node scripts/validate-apps.mjs --matrix --platform web --app "$APP" |
+            jq -e '.include | length == 1' > /dev/null
+          if [[ "$PUBLISH" == "true" ]]; then
+            if [[ "$GITHUB_REF" != refs/heads/main || "$ENABLED" != "true" ]]; then
+              echo 'Web publishing requires main and FACTORY_ENABLE_WEB_PUBLISH=true.' >&2
+              exit 1
+            fi
+            if [[ "$TARGET" == "production" && "$PRODUCTION_APPROVED" != "true" ]]; then
+              echo 'Production requires explicit owner approval.' >&2
+              exit 1
+            fi
+          fi
+          node scripts/deploy-app.mjs "$APP" --environment "$TARGET"
+  publish:
+    needs: plan
+    if: inputs.publish && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: web-${{ inputs.target }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Deploy to Cloudflare Pages
+        env:
+          APP: ${{ inputs.app }}
+          TARGET: ${{ inputs.target }}
+          PRODUCTION_APPROVED: ${{ inputs.production-approved }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          args=(--apply --environment "$TARGET")
+          if [[ "$PRODUCTION_APPROVED" == "true" ]]; then args+=(--production-approved); fi
+          node scripts/deploy-app.mjs "$APP" "${args[@]}"

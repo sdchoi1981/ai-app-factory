@@ -1,0 +1,136 @@
+name: Prepare or publish Android release
+on:
+  workflow_dispatch:
+    inputs:
+      app:
+        description: Registered Android app ID
+        required: true
+        type: string
+      track:
+        description: Play release track
+        type: choice
+        options: [internal, closed, production]
+        default: internal
+      rollout:
+        description: Optional production rollout fraction (for example, 0.1)
+        type: string
+        default: ''
+      publish:
+        description: Upload to Google Play
+        type: boolean
+        default: false
+      production-approved:
+        description: Confirm owner approval for production
+        type: boolean
+        default: false
+permissions:
+  contents: read
+concurrency:
+  group: play-release-${{ inputs.app }}
+  cancel-in-progress: false
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate request and print release plan
+        env:
+          APP: ${{ inputs.app }}
+          TRACK: ${{ inputs.track }}
+          ROLLOUT: ${{ inputs.rollout }}
+          PUBLISH: ${{ inputs.publish }}
+          PRODUCTION_APPROVED: ${{ inputs.production-approved }}
+          ENABLED: ${{ vars.FACTORY_ENABLE_PLAY_PUBLISH }}
+        run: |
+          set -euo pipefail
+          if [[ "$APP" == "all" ]]; then
+            echo 'Choose one Android app.' >&2
+            exit 1
+          fi
+          node scripts/validate-apps.mjs --matrix --platform android --app "$APP" |
+            jq -e '.include | length == 1' > /dev/null
+          if [[ "$PUBLISH" == "true" ]]; then
+            if [[ "$GITHUB_REF" != refs/heads/main || "$ENABLED" != "true" ]]; then
+              echo 'Play publishing requires main and FACTORY_ENABLE_PLAY_PUBLISH=true.' >&2
+              exit 1
+            fi
+            if [[ "$TRACK" == "production" && "$PRODUCTION_APPROVED" != "true" ]]; then
+              echo 'Production requires explicit owner approval.' >&2
+              exit 1
+            fi
+          fi
+          args=(--track "$TRACK")
+          if [[ -n "$ROLLOUT" ]]; then args+=(--rollout "$ROLLOUT"); fi
+          node scripts/deploy-app.mjs "$APP" "${args[@]}"
+  publish:
+    needs: plan
+    if: inputs.publish && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    environment: play-${{ inputs.track }}
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.13'
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools platforms;android-36 build-tools;36.0.0'
+          log-accepted-android-sdk-licenses: 'false'
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.3'
+          bundler-cache: true
+          working-directory: fastlane
+      - uses: google-github-actions/auth@v2
+        if: vars.GOOGLE_WORKLOAD_IDENTITY_PROVIDER != '' && vars.GOOGLE_PLAY_SERVICE_ACCOUNT != ''
+        with:
+          workload_identity_provider: ${{ vars.GOOGLE_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GOOGLE_PLAY_SERVICE_ACCOUNT }}
+      - name: Sign and publish
+        env:
+          APP: ${{ inputs.app }}
+          TRACK: ${{ inputs.track }}
+          ROLLOUT: ${{ inputs.rollout }}
+          PRODUCTION_APPROVED: ${{ inputs.production-approved }}
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_STORE_PASSWORD: ${{ secrets.ANDROID_STORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          GOOGLE_PLAY_JSON: ${{ secrets.GOOGLE_PLAY_JSON }}
+        run: |
+          set -euo pipefail
+          umask 077
+          temp="$(mktemp -d "$RUNNER_TEMP/play-release.XXXXXX")"
+          trap 'rm -rf "$temp"' EXIT
+          : "${ANDROID_KEYSTORE_BASE64:?Configure the Android keystore secret}"
+          export ANDROID_KEYSTORE_PATH="$temp/release.keystore"
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 -d > "$ANDROID_KEYSTORE_PATH"
+          unset ANDROID_KEYSTORE_BASE64
+          if [[ -z "${GOOGLE_APPLICATION_CREDENTIALS:-}" && -n "$GOOGLE_PLAY_JSON" ]]; then
+            export SUPPLY_JSON_KEY="$temp/google-play.json"
+            printf '%s' "$GOOGLE_PLAY_JSON" > "$SUPPLY_JSON_KEY"
+          fi
+          unset GOOGLE_PLAY_JSON
+          args=(--apply --track "$TRACK")
+          if [[ -n "$ROLLOUT" ]]; then args+=(--rollout "$ROLLOUT"); fi
+          if [[ "$PRODUCTION_APPROVED" == "true" ]]; then args+=(--production-approved); fi
+          node scripts/deploy-app.mjs "$APP" "${args[@]}"

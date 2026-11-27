@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="500" viewBox="0 0 1024 500">
+  <defs>
+    <linearGradient id="background" x2="1" y2="1">
+      <stop stop-color="#101e34"/>
+      <stop offset="1" stop-color="#1b437c"/>
+    </linearGradient>
+  </defs>
+  <rect width="1024" height="500" fill="url(#background)"/>
+  <g transform="translate(680 142) scale(2)">
+    <rect width="108" height="108" rx="24" fill="#175CDB"/>
+    <path d="M25,40H82L69,27M82,40L69,53M83,68H26L39,55M26,68L39,81" stroke="#fff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  </g>
+  <text x="113" y="244" fill="#fff" font-family="DejaVu Sans" font-weight="bold" font-size="88">UnitKit</text>
+  <text x="120" y="311" fill="#c1d8f9" font-family="DejaVu Sans" font-size="34">Offline unit converter</text>
+</svg>
