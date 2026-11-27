@@ -1,0 +1,58 @@
+package factory.kit;
+import android.app.*;import android.os.*;import android.content.*;import android.graphics.*;import android.graphics.pdf.*;import android.net.Uri;import android.view.*;import android.widget.*;import android.hardware.*;import android.provider.DocumentsContract;import java.io.*;import java.util.*;import java.util.concurrent.*;import java.util.zip.*;import java.security.*;
+public final class MainActivity extends Activity {
+
+    private static final int PICK=1,SAVE=2,CAMERA=3;
+    private final ArrayList<Uri> selected=new ArrayList<>();
+    private final ExecutorService worker=Executors.newSingleThreadExecutor();
+    private LinearLayout root; private TextView status; private Button pickButton,runButton;
+    private boolean busy=false,closed=false; private File output,capture; private Uri captureUri;
+    private String outputMime,outputName;
+    private String t(String en,String ko,String ja){String lang=getResources().getConfiguration().getLocales().get(0).getLanguage();return "ko".equals(lang)?ko:"ja".equals(lang)?ja:en;}
+    private int dp(float x){return (int)(x*getResources().getDisplayMetrics().density+0.5f);}
+    private void setup(String intro){
+        ScrollView scroll=new ScrollView(this); root=new LinearLayout(this);root.setOrientation(LinearLayout.VERTICAL);
+        root.setPadding(dp(20),dp(18),dp(20),dp(28));scroll.setFillViewport(true);scroll.addView(root);setContentView(scroll);
+        scroll.setOnApplyWindowInsetsListener((v,insets)->{android.graphics.Insets i=insets.getInsets(android.view.WindowInsets.Type.systemBars()|android.view.WindowInsets.Type.displayCutout());v.setPadding(i.left,i.top,i.right,i.bottom);return insets;});
+        TextView title=new TextView(this);title.setText(getString(R.string.app_name));title.setTextSize(30);title.setTypeface(null,android.graphics.Typeface.BOLD);root.addView(title);
+        label(intro); status=label(t("Ready","준비 완료","準備完了"));status.setAccessibilityLiveRegion(View.ACCESSIBILITY_LIVE_REGION_POLITE);
+    }
+    private TextView label(String s){TextView v=new TextView(this);v.setText(s);v.setTextSize(16);v.setPadding(0,dp(8),0,dp(8));root.addView(v);return v;}
+    private Button button(String s,Runnable action){Button b=new Button(this);b.setText(s);b.setMinHeight(dp(48));b.setAllCaps(false);b.setOnClickListener(v->action.run());root.addView(b);return b;}
+    private EditText number(String name,String value){label(name);EditText e=new EditText(this);e.setContentDescription(name);e.setInputType(android.text.InputType.TYPE_CLASS_NUMBER);e.setText(value);e.setSingleLine(true);root.addView(e);return e;}
+    private int parse(EditText e,int min,int max){int n=Integer.parseInt(e.getText().toString());if(n<min||n>max)throw new IllegalArgumentException("range "+min+"–"+max);return n;}
+    private Spinner options(String name,String... items){label(name);Spinner s=new Spinner(this);s.setContentDescription(name);ArrayAdapter<String> a=new ArrayAdapter<>(this,android.R.layout.simple_spinner_dropdown_item,items);s.setAdapter(a);root.addView(s);return s;}
+    private void pick(String mime,boolean multiple){if(busy)return;Intent i=new Intent(Intent.ACTION_OPEN_DOCUMENT);i.setType(mime);i.addCategory(Intent.CATEGORY_OPENABLE);i.putExtra(Intent.EXTRA_ALLOW_MULTIPLE,multiple);try{startActivityForResult(i,PICK);}catch(ActivityNotFoundException e){status.setText(t("No file picker","파일 선택기 없음","ファイル選択不可"));}}
+    private void selectedChanged(){status.setText(t("Selected: ","선택: ","選択: ")+selected.size());}
+    protected void onPicked(){}
+    @Override protected void onActivityResult(int req,int result,Intent data){super.onActivityResult(req,result,data);
+        if(req==PICK&&result==RESULT_OK&&data!=null){selected.clear();if(data.getClipData()!=null){ClipData clip=data.getClipData();for(int n=0;n<Math.min(clip.getItemCount(),20);n++){Uri u=clip.getItemAt(n).getUri();if(u!=null&&!selected.contains(u))selected.add(u);}}else if(data.getData()!=null)selected.add(data.getData());selectedChanged();onPicked();}
+        if(req==SAVE){if(result==RESULT_OK&&data!=null&&data.getData()!=null&&output!=null){final Uri dest=data.getData();final File source=output;busy=true;worker.execute(()->{try(InputStream in=new FileInputStream(source);OutputStream out=getContentResolver().openOutputStream(dest,"wt")){if(out==null)throw new IOException("output");copy(in,out);post(t("Saved successfully","저장 완료","保存完了"));}catch(Exception e){post(t("Save failed","저장 실패","保存失敗"));}finally{source.delete();runOnUiThread(()->{output=null;busy=false;});}});}else{if(output!=null)output.delete();output=null;busy=false;}}
+        if(req==CAMERA)cameraResult(result);
+    }
+    protected void cameraResult(int result){}
+    private void post(String message){runOnUiThread(()->{if(!closed)status.setText(message);});}
+    private void copy(InputStream in,OutputStream out)throws IOException{byte[] buf=new byte[32768];for(int n;(n=in.read(buf))!=-1;){out.write(buf,0,n);if(Thread.currentThread().isInterrupted())throw new InterruptedIOException();}}
+    private ArrayList<Uri> inputs(){if(selected.isEmpty())throw new IllegalArgumentException(t("Select files first","파일을 먼저 선택하세요","ファイルを選択してください"));return new ArrayList<>(selected);}
+    private void fail(Exception e){status.setText(t("Check selection or numeric limits: ","선택 및 입력 범위를 확인하세요: ","選択・入力範囲を確認: ")+(e instanceof IllegalArgumentException?e.getMessage():""));}
+    interface Producer{void write(File file)throws Exception;}
+    private void export(String mime,String name,Producer task){if(busy)return;busy=true;status.setText(t("Processing…","처리 중…","処理中…"));worker.execute(()->{File f=null;try{f=File.createTempFile("kit-export-",".tmp",getCacheDir());task.write(f);if(f.length()==0)throw new IOException("empty");final File completed=f;runOnUiThread(()->{if(closed){completed.delete();return;}output=completed;outputMime=mime;outputName=name;Intent i=new Intent(Intent.ACTION_CREATE_DOCUMENT);i.addCategory(Intent.CATEGORY_OPENABLE);i.setType(mime);i.putExtra(Intent.EXTRA_TITLE,name);try{startActivityForResult(i,SAVE);}catch(ActivityNotFoundException e){completed.delete();output=null;busy=false;status.setText(t("No save picker","저장 앱 없음","保存アプリなし"));}});}catch(Exception|OutOfMemoryError e){if(f!=null)f.delete();runOnUiThread(()->{busy=false;if(!closed)status.setText(t("Could not process files or meet the requested limit","파일 처리 또는 목표 용량 충족 실패","処理または指定サイズに失敗"));});}});}
+    private Bitmap image(Uri uri,int max)throws IOException{return ImageDecoder.decodeBitmap(ImageDecoder.createSource(getContentResolver(),uri),(decoder,info,src)->{int w=info.getSize().getWidth(),h=info.getSize().getHeight();double scale=Math.min(1d,max/(double)Math.max(w,h));decoder.setTargetSize(Math.max(1,(int)(w*scale)),Math.max(1,(int)(h*scale)));decoder.setAllocator(ImageDecoder.ALLOCATOR_SOFTWARE);});}
+    private byte[] encode(Bitmap bitmap,Bitmap.CompressFormat format,int quality)throws IOException{ByteArrayOutputStream b=new ByteArrayOutputStream();if(!bitmap.compress(format,quality,b))throw new IOException("encode");return b.toByteArray();}
+    private Bitmap white(Bitmap b){Bitmap out=Bitmap.createBitmap(b.getWidth(),b.getHeight(),Bitmap.Config.ARGB_8888);Canvas c=new Canvas(out);c.drawColor(Color.WHITE);c.drawBitmap(b,0,0,null);return out;}
+    private byte[] jpegLimit(Bitmap original,int quality,int limit)throws IOException{Bitmap b=white(original);try{while(true){for(int q=quality;q>=10;q-=5){byte[] data=encode(b,Bitmap.CompressFormat.JPEG,q);if(limit==0||data.length<=limit)return data;}int w=b.getWidth(),h=b.getHeight();if(Math.max(w,h)<=32)throw new IOException("limit");Bitmap small=Bitmap.createScaledBitmap(b,Math.max(1,w*3/4),Math.max(1,h*3/4),true);if(small==b)throw new IOException("limit");b.recycle();b=small;}}finally{b.recycle();}}
+    @Override protected void onDestroy(){closed=true;worker.shutdownNow();if(output!=null)output.delete();if(capture!=null)capture.delete();super.onDestroy();}
+
+    private final ArrayList<Duplicate> duplicates=new ArrayList<>();
+    private static class Duplicate{Uri keep,remove;String hash;Duplicate(Uri k,Uri r,String h){keep=k;remove=r;hash=h;}}
+    @Override public void onCreate(Bundle state){super.onCreate(state);setup(t("Find exact byte-identical duplicates among selected photos. Nothing is deleted automatically.","선택한 사진에서 파일 내용이 완전히 같은 중복을 찾습니다. 자동 삭제하지 않습니다.","選択した写真から完全一致の重複を検出。自動削除はしません。"));button(t("Choose photos","사진 선택","写真を選択"),()->pick("image/*",true));
+      button(t("Find duplicates","중복 찾기","重複を検索"),()->{try{ArrayList<Uri> list=inputs();if(busy)return;busy=true;duplicates.clear();status.setText(t("Checking…","검사 중…","確認中…"));worker.execute(()->{ArrayList<Duplicate> found=new ArrayList<>();int errors=0;HashMap<String,Uri> seen=new HashMap<>();for(Uri u:list){try{String hash=digest(u);Uri first=seen.putIfAbsent(hash,u);if(first!=null)found.add(new Duplicate(first,u,hash));}catch(Exception e){errors++;}}final int skipped=errors;runOnUiThread(()->{if(closed)return;busy=false;duplicates.addAll(found);StringBuilder message=new StringBuilder(t("Exact duplicate copies: ","완전 중복 사본: ","完全一致のコピー: ")).append(found.size()).append(t(" / unreadable: "," / 읽기 실패: "," / 読取不可: ")).append(skipped);for(Duplicate d:found)message.append("\n").append(name(d.remove)).append(" → ").append(name(d.keep));status.setText(message);});});}catch(Exception e){fail(e);}});
+      button(t("Review & delete copies","검토 후 사본 삭제","確認してコピーを削除"),()->{if(busy||duplicates.isEmpty())return;ArrayList<Duplicate> list=new ArrayList<>(duplicates);new AlertDialog.Builder(this).setTitle(t("Delete duplicate copies?","중복 사본을 삭제할까요?","重複コピーを削除しますか？")).setMessage(t("One identical original per group is retained. Deletion may be permanent and depends on the document provider. Copies to delete: ","그룹별 동일 원본 한 장을 유지합니다. 삭제는 영구적일 수 있으며 파일 제공자에 따라 지원됩니다. 삭제 대상: ","各グループの原本を1つ保持します。削除は永続的な場合があります。対象: ")+list.size()).setNegativeButton(android.R.string.cancel,null).setPositiveButton(t("Delete","삭제","削除"),(d,w)->deleteCopies(list)).show();});
+      label(t("Up to 20 selected documents. Similar-looking photos are not considered duplicates.","최대 20장. 겉모습만 비슷한 사진은 중복으로 처리하지 않습니다.","最大20枚。見た目が似ているだけの写真は対象外です。"));
+    }
+    @Override protected void onPicked(){duplicates.clear();}
+    private String name(Uri u){try(android.database.Cursor c=getContentResolver().query(u,new String[]{android.provider.OpenableColumns.DISPLAY_NAME},null,null,null)){if(c!=null&&c.moveToFirst())return c.getString(0);}catch(Exception ignored){}return t("Photo","사진","写真");}
+    private String digest(Uri u)throws Exception{MessageDigest md=MessageDigest.getInstance("SHA-256");try(InputStream in=getContentResolver().openInputStream(u)){if(in==null)throw new IOException("input");byte[] b=new byte[32768];for(int n;(n=in.read(b))!=-1;){md.update(b,0,n);if(Thread.currentThread().isInterrupted())throw new InterruptedIOException();}}return android.util.Base64.encodeToString(md.digest(),android.util.Base64.NO_WRAP);}
+    private void deleteCopies(ArrayList<Duplicate> list){busy=true;worker.execute(()->{int count=0;ArrayList<Uri> deleted=new ArrayList<>();for(Duplicate d:list){try{if(!d.keep.equals(d.remove)&&d.hash.equals(digest(d.keep))&&d.hash.equals(digest(d.remove))&&DocumentsContract.isDocumentUri(this,d.remove)&&DocumentsContract.deleteDocument(getContentResolver(),d.remove)){count++;deleted.add(d.remove);}}catch(Exception ignored){}}final int done=count;runOnUiThread(()->{if(closed)return;selected.removeAll(deleted);duplicates.clear();busy=false;status.setText(t("Deleted: ","삭제 완료: ","削除: ")+done+t(" / not deleted: "," / 삭제 안 됨: "," / 未削除: ")+(list.size()-done));});});}
+
+}
