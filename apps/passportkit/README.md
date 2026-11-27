@@ -15,3 +15,6 @@ All 78 app interface messages, status, accessibility labels and cautions are And
 
 ## 1.5.1 startup polish
 Branded navy and original passport icon launch screen, platform-native Android 12+ splash and Android 8–11 centered starting-window drawable. Switch to existing FactoryTheme before Activity creation. No timer, extra Activity, SDK, permissions, advertising or forced animation. Camera, editing, exports and locale behavior unchanged. Actual cold/warm startup and foldable/dark-mode appearance need device verification.
+
+## 1.5.2 splash visibility
+On the first fresh MainActivity creation in a process, keep the native starting window visible by gating the first draw until 1500 ms after onCreate begins, without sleeping or blocking the UI thread. Skip on restored or subsequent Activity instances, remove the gate and callbacks on pause/destroy. Android 8–11 and 12+ retain their existing launch themes. Actual visible duration varies with device startup and system animation; device timing test pending. No photo, locale or permissions changes.
