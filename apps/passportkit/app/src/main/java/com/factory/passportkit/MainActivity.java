@@ -24,6 +24,7 @@ import java.util.Locale;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import factory.ui.SystemInsets;
+import factory.ui.KitUi;
 
 public final class MainActivity extends Activity {
  private static final int PICK=101,CAPTURE=102,SAVE_JPG=103,SAVE_PDF=104,SAVE_SHEET=105,GUIDED=106,CAMERA_PERMISSION=107;
@@ -34,16 +35,17 @@ public final class MainActivity extends Activity {
  private final android.os.Handler splashHandler=new android.os.Handler(android.os.Looper.getMainLooper());
  private final Runnable releaseSplash=this::releaseSplashGate;
  private final ExecutorService worker=Executors.newSingleThreadExecutor();
- private LinearLayout content; private TextView status,measure,quality;
+ private LinearLayout content, page, previewPanel, sourcePanel, editPanel, exportPanel; private ScrollView screen; private KitUi ui; private Button[] steps; private int stage; private PrintPreview printPreview; private TextView status,measure,quality;
  private Preview preview; private SeekBar zoom,x,y,headTop,headBottom;
  private CheckBox confirmed; private Button check,jpg,pdf,sheet,background,resetBackground; private Spinner paper,profileSelect; private TextView ruleNote; private PhotoRules.Profile profile=PhotoRules.Profile.KR; private int backgroundColor=0;
  private Bitmap source,cropped; private File pendingCamera;
  private FaceDetector detector; private int generation; private boolean busy,closed,updating;
  private byte[] pendingExport; private int pendingRequest;
  private int dp(int n){return Math.round(n*getResources().getDisplayMetrics().density);}
- private TextView label(String s,int size){TextView t=new TextView(this);t.setText(s);t.setTextSize(size);t.setPadding(0,dp(7),0,dp(7));content.addView(t,new LinearLayout.LayoutParams(-1,-2));return t;}
- private Button button(String s,Runnable r){Button b=new Button(this);b.setText(s);b.setAllCaps(false);b.setMinHeight(dp(48));b.setOnClickListener(v->r.run());content.addView(b,new LinearLayout.LayoutParams(-1,-2));return b;}
- private SeekBar slider(String s,int max,int value,boolean crop){label(s,15);SeekBar bar=new SeekBar(this);bar.setMax(max);bar.setProgress(value);bar.setContentDescription(s);content.addView(bar,new LinearLayout.LayoutParams(-1,dp(44)));bar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener(){
+ private TextView label(String s,int size){TextView t=ui.text(s,size,size>=18);content.addView(t,ui.space(-2,0,2));return t;}
+ private Button button(String s,Runnable r){Button b=new Button(this);b.setText(s);ui.button(b,false);b.setOnClickListener(v->r.run());content.addView(b,ui.space(-2,3,4));return b;}
+ private void showStage(int next){if(next!=0&&source==null)next=0;stage=next;sourcePanel.setVisibility(stage==0?View.VISIBLE:View.GONE);previewPanel.setVisibility(stage==1?View.VISIBLE:View.GONE);editPanel.setVisibility(stage==1?View.VISIBLE:View.GONE);exportPanel.setVisibility(stage==2?View.VISIBLE:View.GONE);for(int i=0;i<3;i++){ui.button(steps[i],i==stage);steps[i].setSelected(i==stage);steps[i].setEnabled(i==0||source!=null);}if(printPreview!=null)printPreview.invalidate();screen.post(()->screen.scrollTo(0,0));}
+ private SeekBar slider(String s,int max,int value,boolean crop){label(s,15);SeekBar bar=new SeekBar(this);bar.setMax(max);bar.setProgress(value);bar.setContentDescription(s);bar.setProgressTintList(android.content.res.ColorStateList.valueOf(ui.accent));bar.setThumbTintList(android.content.res.ColorStateList.valueOf(ui.accent));content.addView(bar,new LinearLayout.LayoutParams(-1,dp(52)));bar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener(){
   public void onStartTrackingTouch(SeekBar b){}
   public void onStopTrackingTouch(SeekBar b){}
   public void onProgressChanged(SeekBar b,int v,boolean user){if(updating||!user||source==null)return;confirmed.setChecked(false);if(crop)updateCrop();else updateMeasurement();}
@@ -58,34 +60,37 @@ public final class MainActivity extends Activity {
   File dir=new File(getCacheDir(),"capture");dir.mkdirs();
   if(saved!=null){String n=saved.getString("capture");if(n!=null&&n.matches("photo-[a-zA-Z0-9]+\\.jpg"))pendingCamera=new File(dir,n);}
   File[] stale=dir.listFiles();if(stale!=null)for(File f:stale)if(!f.equals(pendingCamera))f.delete();
-  ScrollView scroll=new ScrollView(this);content=new LinearLayout(this);content.setOrientation(LinearLayout.VERTICAL);content.setPadding(dp(20),dp(16),dp(20),dp(24));scroll.addView(content,new ViewGroup.LayoutParams(-1,-2));
-  label("PassportKit",32);label(getString(R.string.pk_001),19);
-  profileSelect=new Spinner(this);profileSelect.setContentDescription(getString(R.string.pk_002));profileSelect.setAdapter(new ArrayAdapter<>(this,android.R.layout.simple_spinner_dropdown_item,new String[]{getString(R.string.pk_003),getString(R.string.pk_004),getString(R.string.pk_005),getString(R.string.pk_006)}));content.addView(profileSelect,new LinearLayout.LayoutParams(-1,dp(52)));ruleNote=label("",14);
-  label(getString(R.string.pk_007),15);
-  button(getString(R.string.pk_008),this::pick);button(getString(R.string.pk_009),this::camera);button(getString(R.string.pk_010),this::guided);
-  status=label(getString(R.string.pk_011),16);status.setAccessibilityLiveRegion(View.ACCESSIBILITY_LIVE_REGION_POLITE);
-  preview=new Preview();preview.setContentDescription(getString(R.string.pk_012));content.addView(preview,new LinearLayout.LayoutParams(-1,dp(330)));
-  label(getString(R.string.pk_013),18);
+  ui=new KitUi(this,0xff3155b7,0xffa9bfff);
+  ScrollView scroll=new ScrollView(this);screen=scroll;scroll.setFillViewport(true);scroll.setBackgroundColor(ui.background);
+  page=ui.column();android.widget.FrameLayout frame=new android.widget.FrameLayout(this);frame.addView(page,new android.widget.FrameLayout.LayoutParams(-1,-2,android.view.Gravity.TOP|android.view.Gravity.CENTER_HORIZONTAL));scroll.addView(frame,new ViewGroup.LayoutParams(-1,-2));content=page;
+  label("PassportKit",32);label(getString(R.string.pk_001),16);
+  LinearLayout navigation=new LinearLayout(this);navigation.setOrientation(LinearLayout.HORIZONTAL);steps=new Button[3];int[] stepIds={R.string.stage_source,R.string.stage_edit,R.string.stage_save};
+  for(int i=0;i<3;i++){final int step=i;Button b=new Button(this);b.setText(getString(stepIds[i]));ui.button(b,i==0);b.setOnClickListener(v->showStage(step));LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(0,-2,1);lp.setMargins(dp(2),0,dp(2),0);navigation.addView(b,lp);steps[i]=b;}page.addView(navigation,ui.space(-2,4,8));
+  status=label(getString(R.string.pk_011),15);status.setAccessibilityLiveRegion(View.ACCESSIBILITY_LIVE_REGION_POLITE);
+  sourcePanel=ui.card(page);content=sourcePanel;
+  label(getString(R.string.pk_002),22);
+  profileSelect=new Spinner(this);profileSelect.setContentDescription(getString(R.string.pk_002));profileSelect.setAdapter(new ArrayAdapter<>(this,android.R.layout.simple_spinner_dropdown_item,new String[]{getString(R.string.pk_003),getString(R.string.pk_004),getString(R.string.pk_005),getString(R.string.pk_006)}));ui.field(profileSelect);content.addView(profileSelect,ui.space(dp(56),4,4));ruleNote=label("",14);
+  View intro=new View(this){final Paint p=new Paint(Paint.ANTI_ALIAS_FLAG);@Override protected void onDraw(Canvas c){float w=getWidth(),h=getHeight();p.setColor(ui.tint);c.drawRect(0,0,w,h,p);float x=w/2,y=h/2,r=Math.min(w,h)*.35f;p.setColor(ui.accent);c.drawRoundRect(x-r*1.2f,y-r*.8f,x+r*.25f,y+r*.9f,dp(8),dp(8),p);p.setColor(ui.surface);c.drawRoundRect(x-r*.25f,y-r*.65f,x+r*1.3f,y+r*.65f,dp(9),dp(9),p);p.setColor(ui.accent);c.drawCircle(x+r*.18f,y-r*.19f,r*.19f,p);c.drawRoundRect(x-r*.09f,y+r*.06f,x+r*.46f,y+r*.42f,dp(5),dp(5),p);p.setStrokeWidth(dp(2));c.drawLine(x+r*.60f,y-r*.15f,x+r*1.04f,y-r*.15f,p);c.drawLine(x+r*.60f,y+r*.12f,x+r*1.04f,y+r*.12f,p);}};
+  ui.preview(intro);content.addView(intro,ui.space(dp(136),6,8));label(getString(R.string.pk_007),14);
+  ui.button(button(getString(R.string.pk_008),this::pick),true);button(getString(R.string.pk_010),this::guided);button(getString(R.string.pk_009),this::camera);
+  previewPanel=ui.card(page);content=previewPanel;preview=new Preview();preview.setContentDescription(getString(R.string.pk_012));ui.preview(preview);content.addView(preview,ui.space(dp(330),0,0));
+  editPanel=ui.card(page);content=editPanel;label(getString(R.string.pk_013),20);
   zoom=slider(getString(R.string.pk_014),100,0,true);x=slider(getString(R.string.pk_015),100,50,true);y=slider(getString(R.string.pk_016),100,50,true);
-  label(getString(R.string.pk_017),18);
-  headTop=slider(getString(R.string.pk_018),100,10,false);
-  headBottom=slider(getString(R.string.pk_019),100,85,false);
-  measure=label("",16);confirmed=new CheckBox(this);confirmed.setText(getString(R.string.pk_020));confirmed.setOnCheckedChangeListener((b,v)->updateMeasurement());content.addView(confirmed);
-  check=button(getString(R.string.pk_021),this::inspect);
-  quality=label("",15);
+  label(getString(R.string.pk_017),20);headTop=slider(getString(R.string.pk_018),100,10,false);headBottom=slider(getString(R.string.pk_019),100,85,false);
+  measure=label("",16);confirmed=new CheckBox(this);confirmed.setText(getString(R.string.pk_020));confirmed.setMinHeight(dp(52));confirmed.setOnCheckedChangeListener((b,v)->updateMeasurement());content.addView(confirmed);
+  check=button(getString(R.string.pk_021),this::inspect);quality=label("",15);
   background=button(getString(R.string.pk_022),this::chooseBackground);resetBackground=button(getString(R.string.pk_023),()->{backgroundColor=0;updateCrop();});
-  label(getString(R.string.pk_024),18);
-  jpg=button(getString(R.string.pk_025),()->export(SAVE_JPG));
-  paper=new Spinner(this);paper.setContentDescription(getString(R.string.pk_026));ArrayAdapter<String> adapter=new ArrayAdapter<>(this,android.R.layout.simple_spinner_dropdown_item,new String[]{"4 × 6 in","5 × 7 in","A4"});paper.setAdapter(adapter);content.addView(paper,new LinearLayout.LayoutParams(-1,dp(52)));
-  pdf=button(getString(R.string.pk_027),()->export(SAVE_PDF));
-  sheet=button(getString(R.string.pk_028),()->export(SAVE_SHEET));
-  button(getString(R.string.pk_029),this::clear);
-  button(getString(R.string.pk_030),()->new android.app.AlertDialog.Builder(this).setTitle("PassportKit Pro").setMessage(getString(R.string.pk_031)).setPositiveButton(android.R.string.ok,null).show());
-  label(getString(R.string.pk_032),14);
-  label(getString(R.string.pk_033),14);
-  label("https://www.passport.go.kr/home/kor/contents.do?menuPos=32\nhttps://www.passport.go.kr/home/kor/contents.do?menuPos=12",12);
+  ui.button(button(getString(R.string.stage_save),()->showStage(2)),true);
+  exportPanel=ui.card(page);content=exportPanel;label(getString(R.string.pk_024),22);
+  label(getString(R.string.stage_save_hint),15);printPreview=new PrintPreview();printPreview.setContentDescription(getString(R.string.stage_paper_preview));ui.preview(printPreview);content.addView(printPreview,ui.space(dp(250),4,8));
+  jpg=button(getString(R.string.pk_025),()->export(SAVE_JPG));ui.button(jpg,true);
+  label(getString(R.string.pk_026),15);paper=new Spinner(this);paper.setContentDescription(getString(R.string.pk_026));ArrayAdapter<String> adapter=new ArrayAdapter<>(this,android.R.layout.simple_spinner_dropdown_item,new String[]{"4 × 6 in","5 × 7 in","A4"});paper.setAdapter(adapter);ui.field(paper);content.addView(paper,ui.space(dp(52),4,6));paper.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener(){public void onNothingSelected(AdapterView<?> p){}public void onItemSelected(AdapterView<?> p,View v,int i,long id){printPreview.invalidate();}});
+  pdf=button(getString(R.string.pk_027),()->export(SAVE_PDF));sheet=button(getString(R.string.pk_028),()->export(SAVE_SHEET));button(getString(R.string.stage_edit),()->showStage(1));label(getString(R.string.pk_033),14);
+  content=page;button(getString(R.string.pk_029),this::clear);button(getString(R.string.pk_030),()->new android.app.AlertDialog.Builder(this).setTitle("PassportKit Pro").setMessage(getString(R.string.pk_031)).setPositiveButton(android.R.string.ok,null).show());
+  label(getString(R.string.pk_032),14);label("https://www.passport.go.kr/home/kor/contents.do?menuPos=32\nhttps://www.passport.go.kr/home/kor/contents.do?menuPos=12",12);
+  showStage(0);
   if(holdSplash)holdSplashUntil(scroll,startedAt+SPLASH_MIN_MS);
-  setContentView(scroll);SystemInsets.apply(this,content);profileSelect.setOnItemSelectedListener(new android.widget.AdapterView.OnItemSelectedListener(){public void onNothingSelected(android.widget.AdapterView<?> p){}public void onItemSelected(android.widget.AdapterView<?> p,View v,int i,long id){profile=PhotoRules.Profile.values()[i];backgroundColor=0;confirmed.setChecked(false);updateProfile();if(source!=null)updateCrop();else updateMeasurement();}});updateProfile();updateMeasurement();
+  setContentView(scroll);SystemInsets.apply(this,scroll);profileSelect.setOnItemSelectedListener(new android.widget.AdapterView.OnItemSelectedListener(){public void onNothingSelected(android.widget.AdapterView<?> p){}public void onItemSelected(android.widget.AdapterView<?> p,View v,int i,long id){profile=PhotoRules.Profile.values()[i];backgroundColor=0;confirmed.setChecked(false);updateProfile();if(source!=null)updateCrop();else updateMeasurement();}});updateProfile();updateMeasurement();
  }
  private void holdSplashUntil(View view,long deadline){
   splashGateView=view;
@@ -133,7 +138,7 @@ public final class MainActivity extends Activity {
   worker.execute(()->{Bitmap b=null;try{b=decode(uri);}catch(Exception|OutOfMemoryError ignored){}Bitmap decoded=b;runOnUiThread(()->{
    if(capture)removeCapture();if(closed){if(decoded!=null)decoded.recycle();return;}busy=false;
    if(decoded==null){message(getString(R.string.pk_043));updateMeasurement();return;}
-   if(source!=null)source.recycle();source=decoded;backgroundColor=0;updating=true;zoom.setProgress(0);x.setProgress(50);y.setProgress(50);headTop.setProgress(10);headBottom.setProgress(85);confirmed.setChecked(false);updating=false;updateCrop();message(getString(R.string.pk_044));
+   if(source!=null)source.recycle();source=decoded;backgroundColor=0;updating=true;zoom.setProgress(0);x.setProgress(50);y.setProgress(50);headTop.setProgress(10);headBottom.setProgress(85);confirmed.setChecked(false);updating=false;updateCrop();message(getString(R.string.pk_044));showStage(1);
   });});
  }
  private InputStream input(Uri uri)throws IOException{InputStream in=getContentResolver().openInputStream(uri);if(in==null)throw new IOException();return in;}
@@ -154,7 +159,7 @@ public final class MainActivity extends Activity {
  private void chooseBackground(){if(source==null||busy||!PhotoRules.backgroundAllowed(profile))return;new android.app.AlertDialog.Builder(this).setTitle(getString(R.string.pk_049)).setItems(new String[]{getString(R.string.pk_050),getString(R.string.pk_051),getString(R.string.pk_052)},(d,i)->{if(!PhotoRules.backgroundAllowed(profile))return;backgroundColor=new int[]{Color.WHITE,0xffc9e2f4,0xffd9d9d9}[i];confirmed.setChecked(false);updateCrop();message(getString(R.string.pk_053));}).show();}
  private void updateMeasurement(){if(measure==null)return;boolean valid=source!=null&&PhotoRules.resolution(profile,cropRect());boolean range=PhotoRules.headRange(profile,headTop.getProgress(),headBottom.getProgress());
   measure.setText(source==null?getString(R.string.pk_054):String.format(Locale.US,getString(R.string.pk_055),PhotoRules.headMm(profile,headTop.getProgress(),headBottom.getProgress()),valid?getString(R.string.pk_056):getString(R.string.pk_057)));
-  boolean ready=valid&&range&&confirmed.isChecked()&&!busy;check.setEnabled(source!=null&&!busy);jpg.setEnabled(ready);pdf.setEnabled(ready);sheet.setEnabled(ready);background.setEnabled(source!=null&&!busy);resetBackground.setEnabled(source!=null&&!busy);preview.invalidate();
+  boolean ready=valid&&range&&confirmed.isChecked()&&!busy;check.setEnabled(source!=null&&!busy);jpg.setEnabled(ready);pdf.setEnabled(ready);sheet.setEnabled(ready);background.setEnabled(source!=null&&!busy);resetBackground.setEnabled(source!=null&&!busy);preview.invalidate();if(printPreview!=null)printPreview.invalidate();
  }
  private void inspect(){if(cropped==null||busy)return;int ticket=++generation;busy=true;updateMeasurement();quality.setText(getString(R.string.pk_058));
   Bitmap snapshot=cropped.copy(Bitmap.Config.ARGB_8888,false);String hint=qualityHint(snapshot);
@@ -182,8 +187,13 @@ public final class MainActivity extends Activity {
   }finally{doc.close();}
  }
  private byte[] makeSheet()throws IOException{int pos=paper.getSelectedItemPosition(),w=pos==0?1200:pos==1?1500:2480,h=pos==0?1800:pos==1?2100:3508;int pw=PhotoRules.pixels(profile.mmW),ph=PhotoRules.pixels(profile.mmH),gap=PhotoRules.pixels(3),margin=PhotoRules.pixels(4),cols=(w-2*margin+gap)/(pw+gap),rows=(h-2*margin+gap)/(ph+gap);Bitmap bitmap=Bitmap.createBitmap(w,h,Bitmap.Config.ARGB_8888);try{Canvas c=new Canvas(bitmap);c.drawColor(Color.WHITE);int left=(w-cols*pw-(cols-1)*gap)/2,top=(h-rows*ph-(rows-1)*gap)/2;Paint p=new Paint(Paint.FILTER_BITMAP_FLAG);for(int y=0;y<rows;y++)for(int x=0;x<cols;x++){int xx=left+x*(pw+gap),yy=top+y*(ph+gap);c.drawBitmap(cropped,null,new Rect(xx,yy,xx+pw,yy+ph),p);}ByteArrayOutputStream out=new ByteArrayOutputStream();if(!bitmap.compress(Bitmap.CompressFormat.JPEG,95,out))throw new IOException();return out.toByteArray();}finally{bitmap.recycle();}}
- private void clear(){if(busy)return;generation++;if(source!=null){source.recycle();source=null;}if(cropped!=null){cropped.recycle();cropped=null;}pendingExport=null;pendingRequest=0;confirmed.setChecked(false);quality.setText("");message(getString(R.string.pk_072));updateMeasurement();}
+ private void clear(){if(busy)return;generation++;if(source!=null){source.recycle();source=null;}if(cropped!=null){cropped.recycle();cropped=null;}pendingExport=null;pendingRequest=0;confirmed.setChecked(false);quality.setText("");message(getString(R.string.pk_072));updateMeasurement();showStage(0);}
  @Override protected void onDestroy(){releaseSplashGate();closed=true;generation++;worker.shutdown();if(detector!=null)detector.close();if(source!=null)source.recycle();if(cropped!=null)cropped.recycle();pendingExport=null;if(isFinishing())removeCapture();super.onDestroy();}
+ private final class PrintPreview extends View{
+  private final Paint p=new Paint(Paint.ANTI_ALIAS_FLAG|Paint.FILTER_BITMAP_FLAG);
+  PrintPreview(){super(MainActivity.this);}
+  @Override protected void onDraw(Canvas c){if(paper==null||cropped==null||cropped.isRecycled())return;int pos=paper.getSelectedItemPosition(),w=pos==0?288:pos==1?360:595,h=pos==0?432:pos==1?504:842;float scale=Math.min((getWidth()-dp(24))/(float)w,(getHeight()-dp(24))/(float)h);if(scale<=0)return;float l=(getWidth()-w*scale)/2,t=(getHeight()-h*scale)/2;c.save();c.translate(l,t);c.scale(scale,scale);p.setColor(Color.WHITE);c.drawRect(0,0,w,h,p);int[] count=PhotoRules.layout(profile,w,h);float pw=(float)PhotoRules.points(profile.mmW),ph=(float)PhotoRules.points(profile.mmH),gap=(float)PhotoRules.points(3),left=(w-count[0]*pw-(count[0]-1)*gap)/2,top=(h-count[1]*ph-(count[1]-1)*gap)/2;for(int row=0;row<count[1];row++)for(int col=0;col<count[0];col++){float x=left+col*(pw+gap),y=top+row*(ph+gap);c.drawBitmap(cropped,null,new RectF(x,y,x+pw,y+ph),p);}c.restore();}
+ }
  private final class Preview extends View{
   private final Paint p=new Paint(Paint.ANTI_ALIAS_FLAG|Paint.FILTER_BITMAP_FLAG);
   Preview(){super(MainActivity.this);}

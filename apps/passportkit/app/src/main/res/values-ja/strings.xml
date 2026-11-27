@@ -78,4 +78,9 @@
     <string name="pk_076">カメラを開けません。キャンセルしてJPEGを選択してください。</string>
     <string name="pk_077">撮影画像を保存できません。</string>
     <string name="pk_078">撮影に失敗しました。</string>
+    <string name="stage_source">写真</string>
+    <string name="stage_edit">編集</string>
+    <string name="stage_save">保存</string>
+    <string name="stage_save_hint">編集画面で頭部ガイドを合わせて確認してください。検査は参考情報です。</string>
+    <string name="stage_paper_preview">印刷PDFの配置プレビュー</string>
 </resources>

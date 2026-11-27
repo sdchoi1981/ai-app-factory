@@ -78,4 +78,9 @@
     <string name="pk_076">无法打开相机。请取消并选择JPEG。</string>
     <string name="pk_077">拍摄照片保存失败。</string>
     <string name="pk_078">拍摄失败。</string>
+    <string name="stage_source">照片</string>
+    <string name="stage_edit">编辑</string>
+    <string name="stage_save">保存</string>
+    <string name="stage_save_hint">保存前请在编辑页对齐并确认头部参考线。检查仅供参考。</string>
+    <string name="stage_paper_preview">打印PDF布局预览</string>
 </resources>
