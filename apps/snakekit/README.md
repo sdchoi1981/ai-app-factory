@@ -19,3 +19,7 @@ The extended photo workflow generates 400 additional basic entries at build time
 ## 1.3 build correction
 
 The initial GBIF match returned no qualifying genera. The importer now uses an explicit backbone checklist search, exact accepted genus name, expected snake family, Animalia/Chordata, and numeric key, with diagnostic logging. Species still require accepted names in the same backbone and matching family and genus. The photo workflow independently builds base and extended editions so a catalog failure cannot cancel the 100-entry photo APK. All six configured photos must pass verification; no silent substitution.
+
+## 1.4 Snake Maker
+
+Separate fictional snake creator, with live procedural SVG illustration, length/girth, four head shapes, six tails, six patterns, four backgrounds, body/pattern/eye colors, six morph-inspired presets, optional tail movement respecting reduced-motion preference, and 30 locally saved designs. Create/edit/delete (confirmation on delete), validated configuration, no account, sharing, external requests, or actual species claims. Existing 100/500 catalog and six-photo pipelines unchanged. Name is entered locally and is not transmitted. Test coverage includes normalization, invalid options, lengths, storage round-trip, edits, duplicates and capacity. Actual rendering, animation and local retention require device validation.
