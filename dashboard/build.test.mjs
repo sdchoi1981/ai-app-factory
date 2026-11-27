@@ -49,3 +49,6 @@ test('rejects invalid, foreign or duplicate app and run references', () => {
   }
   assert.throws(() => createDashboardData([app], { runs: [run, run] }));
 });
+
+// Include collector regression tests in the existing required merge gate.
+import './collect-actions.test.mjs';
