@@ -1,0 +1,60 @@
+name: Publish factory dashboard
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'dashboard/**'
+      - 'apps/registry.json'
+      - '.github/workflows/dashboard-pages.yml'
+  workflow_run:
+    workflows: ["Build Android apps", "Build web apps", "Test apps"]
+    types: [completed]
+    branches: [main]
+permissions:
+  contents: read
+concurrency:
+  group: factory-dashboard-pages
+  cancel-in-progress: false
+jobs:
+  build:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Test dashboard
+        run: node --test dashboard/*.test.mjs
+      - name: Collect verified main-branch build results
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node dashboard/collect-actions.mjs "$RUNNER_TEMP/dashboard-results.json"
+      - name: Build dashboard
+        run: node dashboard/build.mjs --results "$RUNNER_TEMP/dashboard-results.json"
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dashboard/dist
+  deploy:
+    needs: build
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Publish
+        id: deployment
+        uses: actions/deploy-pages@v4
