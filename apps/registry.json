@@ -357,6 +357,41 @@
         "dataCollected": [],
         "notes": "Camera used only for on-device QR scanning. No network, tracking or stored history."
       }
+    },
+    {
+      "appId": "snakekit",
+      "appName": "SnakeKit",
+      "description": "Korean child-friendly offline snake encyclopedia with 16 illustrated entries and quizzes.",
+      "platform": "android",
+      "applicationId": "com.factory.snakekit",
+      "versionName": "1.0.0",
+      "versionCode": 1,
+      "category": "education",
+      "status": "testing",
+      "supportedLanguages": [
+        "ko"
+      ],
+      "monetization": {
+        "ads": false,
+        "analytics": false
+      },
+      "buildConfiguration": {
+        "path": "apps/snakekit",
+        "testFile": "test.mjs",
+        "sharedPackages": [
+          "core",
+          "ui"
+        ]
+      },
+      "releaseConfiguration": {
+        "enabled": false,
+        "defaultTrack": "internal"
+      },
+      "privacyPolicyUrl": null,
+      "privacy": {
+        "dataCollected": [],
+        "notes": "Child-directed app, no network or ads. Favorites stored locally only."
+      }
     }
   ]
 }
