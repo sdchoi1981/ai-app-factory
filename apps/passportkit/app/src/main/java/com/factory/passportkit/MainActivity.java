@@ -43,6 +43,7 @@ public final class MainActivity extends Activity {
   public void onProgressChanged(SeekBar b,int v,boolean user){if(updating||!user||source==null)return;confirmed.setChecked(false);if(crop)updateCrop();else updateMeasurement();}
  });return bar;}
  @Override public void onCreate(Bundle saved){
+  setTheme(R.style.FactoryTheme);
   super.onCreate(saved);
   getWindow().addFlags(WindowManager.LayoutParams.FLAG_SECURE);
   File dir=new File(getCacheDir(),"capture");dir.mkdirs();

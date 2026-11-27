@@ -12,3 +12,6 @@ Live rear-camera composition overlay (platform Camera API, not CameraX), Korean 
 
 ### Localization
 All 78 app interface messages, status, accessibility labels and cautions are Android string resources in English, Korean, Japanese, Simplified Chinese and Traditional Chinese. Android 13+ per-app language setting; earlier versions follow device locale. Unsupported locales fall back to English. UI translations do not add official photo templates for those countries. Native speaker review and device layout checks pending.
+
+## 1.5.1 startup polish
+Branded navy and original passport icon launch screen, platform-native Android 12+ splash and Android 8–11 centered starting-window drawable. Switch to existing FactoryTheme before Activity creation. No timer, extra Activity, SDK, permissions, advertising or forced animation. Camera, editing, exports and locale behavior unchanged. Actual cold/warm startup and foldable/dark-mode appearance need device verification.
