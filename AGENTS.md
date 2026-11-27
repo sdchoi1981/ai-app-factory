@@ -26,3 +26,9 @@ Use actual host-provided subagents when the current task and host permit delegat
 - Prefer local computation, minimal permissions and no account requirement. Preserve accessibility, offline behavior and compatibility with existing users and stored preferences.
 - Never commit credentials, keys, personal data or unrelated code. Keep Android security controls and Play Protect intact. Use debug APKs for testing and state whether any AAB is unsigned.
 - Keep paid services, live ad IDs, domain purchases, release signing, store publication, and production deployments behind explicit owner authorization. Do not access unrelated repositories or financial projects. Report real-device and store acceptance separately from automated validation.
+
+## Conditional auto-merge
+
+- Open a PR targeting `main` for each completed task; never bypass the main ruleset.
+- After the reviewer and security passes, enable GitHub auto-merge (prefer squash when supported) only for owner-requested, in-scope changes that need no further owner approval. Require the `Factory required checks` check to succeed for the current PR revision. Never merge failing or pending checks manually, or weaken the check to pass.
+- If auto-merge is unavailable or permission is denied, report the PR URL and exact blocker. Do not claim a merge until GitHub confirms it. Verify main-branch CI after merging. Changes to protection rules, release workflows, secrets, live ads, paid services or production deployment require separate owner authorization.
