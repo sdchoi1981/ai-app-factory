@@ -32,9 +32,13 @@ jobs:
         with:
           packages: 'platform-tools platforms;android-36 build-tools;36.0.0'
           log-accepted-android-sdk-licenses: 'false'
+      - name: Build verified extended catalog
+        run: node apps/snakekit/prepare-catalog.mjs
       - name: Fetch and verify curated photo files
         run: node apps/snakekit/prepare-photos.mjs
       - name: Build and verify offline app
+        env:
+          SNAKEKIT_EXTENDED: 'true'
         run: |
           set -euo pipefail
           node scripts/test-app.mjs snakekit
@@ -43,7 +47,8 @@ jobs:
           "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify "$apk"
           if "$ANDROID_HOME/build-tools/36.0.0/aapt" dump permissions "$apk" | grep -F 'android.permission.INTERNET'; then exit 1; fi
           unzip -p "$apk" assets/index.html > "$RUNNER_TEMP/catalog.html"
-          node --input-type=module -e "import fs from 'node:fs'; const s=fs.readFileSync(process.argv[1],'utf8'); const d=JSON.parse(s.match(/const PHOTO_DATA=(.*?);\nfunction nextCup/s)[1]); if(Object.keys(d).length!==3||Object.values(d).some(x=>!x.data.startsWith('data:image/jpeg;base64,')||!x.credit)) process.exit(1)" "$RUNNER_TEMP/catalog.html"
+          node --input-type=module -e "import fs from 'node:fs'; const s=fs.readFileSync(process.argv[1],'utf8'); const d=JSON.parse(s.match(/const SNAKES=(.*?);\\nconst GROUPS/s)[1]); if(d.length!==500||new Set(d.map(x=>x.scientific)).size!==500)process.exit(1)" "$RUNNER_TEMP/catalog.html"
+          node --input-type=module -e "import fs from 'node:fs'; const s=fs.readFileSync(process.argv[1],'utf8'); const d=JSON.parse(s.match(/const PHOTO_DATA=(.*?);\nconst CONSERVATION/s)[1]); if(Object.keys(d).length!==6||Object.values(d).some(x=>!x.data.startsWith('data:image/jpeg;base64,')||!x.credit)) process.exit(1)" "$RUNNER_TEMP/catalog.html"
       - uses: actions/upload-artifact@v4
         with:
           name: snakekit-OFFLINE-PHOTO-APK
