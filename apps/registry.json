@@ -639,7 +639,7 @@
     {
       "appId": "cleankit",
       "appName": "CleanKit",
-      "description": "Find exact duplicate photos locally and optionally remove confirmed copies",
+      "description": "Find exact duplicate photos locally; read-only report",
       "platform": "android",
       "applicationId": "com.factory.cleankit",
       "versionName": "1.0.0",

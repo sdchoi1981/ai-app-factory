@@ -1,5 +1,3 @@
 # CleanKit 1.0.0
 
-Find exact duplicate photos locally and optionally remove confirmed copies.
-
-Android 11+, English, Korean and Japanese. No network permissions, analytics, live advertising, billing, signing or publication. Development release; GitHub Actions build/lint and real-device testing required. User-selected files only. See the app for limits and unsupported capabilities.
+Find byte-identical photos among up to 20 selected documents using SHA-256. Read-only report; no deletion. Android 11+, Korean, English and Japanese. No network, ads, tracking, or release enabled. Device testing pending.
