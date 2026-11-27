@@ -392,6 +392,42 @@
         "dataCollected": [],
         "notes": "Child-directed, no ads or network permission. Favorites and collection stay local. Optional speech uses installed offline Korean voice. Fictional snake creations are saved locally only."
       }
+    },
+    {
+      "appId": "passportkit",
+      "appName": "PassportKit",
+      "description": "Offline Korean passport photo preparation, manual crown-to-chin guides, local face hints, JPEG and print PDF.",
+      "platform": "android",
+      "applicationId": "com.factory.passportkit",
+      "versionName": "1.0.0",
+      "versionCode": 1,
+      "category": "photography",
+      "status": "testing",
+      "supportedLanguages": [
+        "ko",
+        "en"
+      ],
+      "monetization": {
+        "ads": false,
+        "analytics": false
+      },
+      "buildConfiguration": {
+        "path": "apps/passportkit",
+        "testFile": "test.mjs",
+        "sharedPackages": [
+          "core",
+          "ui"
+        ]
+      },
+      "releaseConfiguration": {
+        "enabled": false,
+        "defaultTrack": "internal"
+      },
+      "privacyPolicyUrl": null,
+      "privacy": {
+        "dataCollected": [],
+        "notes": "Photo processed locally, no identity recognition or network permission. Temporary camera cache deleted on return; exports only to user-selected location. No ads or analytics."
+      }
     }
   ]
 }
