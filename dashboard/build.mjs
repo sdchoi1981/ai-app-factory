@@ -28,7 +28,8 @@ function normalizeApps(registry) {
       platform: app.platform,
       status: app.status,
       versionName: app.versionName,
-      versionCode: isId(app.versionCode) ? app.versionCode : null
+      versionCode: isId(app.versionCode) ? app.versionCode : null,
+      ...(app.monetization?.testBannerPrepared === true ? { testBannerPrepared: true } : {})
     });
   }
   return apps;

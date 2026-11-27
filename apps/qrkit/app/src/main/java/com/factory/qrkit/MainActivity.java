@@ -12,7 +12,7 @@ import android.content.pm.PackageManager;
 import android.Manifest;
 import factory.ui.SystemInsets;
 
-public final class MainActivity extends Activity {
+public final class MainActivity extends factory.ads.BannerActivity {
  private EditText text;
  private TextView result;
  private ImageView image;
