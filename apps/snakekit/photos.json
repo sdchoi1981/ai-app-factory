@@ -1,0 +1,29 @@
+[
+  {
+    "id": "ball",
+    "title": "Ball Python (Python regius).jpg",
+    "author": "Seth Cochran",
+    "license": "CC0",
+    "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "timestamp": "2013-05-26T17:04:00Z",
+    "sha1": "0fc8610203e08184d0f0ec18f8466084556aa5b5"
+  },
+  {
+    "id": "death",
+    "title": "Acanthophis antarcticus 114523840.jpg",
+    "author": "Isaiah Findley",
+    "license": "CC0",
+    "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "timestamp": "2023-10-27T10:03:00Z",
+    "sha1": "899c40bbf62d2a927a1571635eb2ef53c9f726a2"
+  },
+  {
+    "id": "anaconda",
+    "title": "Eunectes murinus 89683756.jpg",
+    "author": "jorgehenao",
+    "license": "CC BY 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+    "timestamp": "2022-04-01T12:47:00Z",
+    "sha1": "f6fb8e08207efc9272d3644330e8feb6ad8a6830"
+  }
+]

@@ -357,6 +357,41 @@
         "dataCollected": [],
         "notes": "Camera used only for on-device QR scanning. No network, tracking or stored history."
       }
+    },
+    {
+      "appId": "snakekit",
+      "appName": "SnakeKit",
+      "description": "Korean offline snake atlas: 100 living taxa, 24 detailed quiz entries, morphs, fossils, collection, tournament and local speech.",
+      "platform": "android",
+      "applicationId": "com.factory.snakekit",
+      "versionName": "1.2.0",
+      "versionCode": 3,
+      "category": "education",
+      "status": "testing",
+      "supportedLanguages": [
+        "ko"
+      ],
+      "monetization": {
+        "ads": false,
+        "analytics": false
+      },
+      "buildConfiguration": {
+        "path": "apps/snakekit",
+        "testFile": "test.mjs",
+        "sharedPackages": [
+          "core",
+          "ui"
+        ]
+      },
+      "releaseConfiguration": {
+        "enabled": false,
+        "defaultTrack": "internal"
+      },
+      "privacyPolicyUrl": null,
+      "privacy": {
+        "dataCollected": [],
+        "notes": "Child-directed, no ads or network permission. Favorites and collection stay local. Optional speech uses installed offline Korean voice."
+      }
     }
   ]
 }

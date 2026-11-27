@@ -1,0 +1,23 @@
+plugins { id 'com.android.application' }
+
+android {
+    namespace 'com.factory.snakekit'
+    compileSdk 36
+    defaultConfig {
+        applicationId 'com.factory.snakekit'
+        minSdk 26
+        targetSdk 36
+        versionCode 3
+        versionName '1.2.0'
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+    sourceSets {
+        main {
+            java.srcDirs += ['../../../packages/core/android/java', '../../../packages/ui/android/java']
+            res.srcDirs += ['../../../packages/ui/android/res']
+        }
+    }
+}
