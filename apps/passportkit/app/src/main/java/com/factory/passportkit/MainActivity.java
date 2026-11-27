@@ -52,7 +52,7 @@ public final class MainActivity extends Activity {
   ScrollView scroll=new ScrollView(this);content=new LinearLayout(this);content.setOrientation(LinearLayout.VERTICAL);content.setPadding(dp(20),dp(16),dp(20),dp(24));scroll.addView(content,new ViewGroup.LayoutParams(-1,-2));
   label("PassportKit",32);label(tr("대한민국 여권사진 준비 도구","Korean passport photo preparation"),19);
   label(tr("흰 벽 앞에서 정면으로 촬영하세요. 최근 6개월 이내 사진, 모자 없이, 입을 다물고 눈을 뜨세요. 배경 제거·AI 보정은 제공하지 않습니다.","Use a recent frontal photo against a plain white wall, eyes open, mouth closed, no hat. No background removal or AI retouching."),15);
-  button(tr("사진 불러오기","Choose photo"),this::pick);button(tr("카메라로 촬영","Take photo (camera app)"),this::camera);
+  button(tr("JPG 사진 불러오기","Choose JPEG photo"),this::pick);button(tr("카메라로 촬영","Take photo (camera app)"),this::camera);
   status=label(tr("사진을 선택하세요. 사진은 기기 내부에서 처리합니다.","Choose a photo. Processing stays on this device."),16);status.setAccessibilityLiveRegion(View.ACCESSIBILITY_LIVE_REGION_POLITE);
   preview=new Preview();preview.setContentDescription(tr("편집 미리보기 및 머리 길이 표시선","Crop preview and manual head guide"));content.addView(preview,new LinearLayout.LayoutParams(-1,dp(330)));
   label(tr("1. 자르기 · 위치 조절 (35×45mm 비율)","1. Crop and position (35×45 mm)"),18);
@@ -73,8 +73,8 @@ public final class MainActivity extends Activity {
   setContentView(scroll);SystemInsets.apply(this,content);updateMeasurement();
  }
  @Override protected void onSaveInstanceState(Bundle out){super.onSaveInstanceState(out);if(pendingCamera!=null)out.putString("capture",pendingCamera.getName());}
- private void pick(){if(busy)return;try{Intent i=new Intent(Intent.ACTION_OPEN_DOCUMENT);i.setType("image/*");i.addCategory(Intent.CATEGORY_OPENABLE);startActivityForResult(i,PICK);}catch(RuntimeException e){message(tr("사진 선택기를 열 수 없습니다.","Cannot open photo picker."));}}
- private void camera(){if(busy||pendingCamera!=null)return;try{
+ private void pick(){if(busy||pendingExport!=null)return;try{Intent i=new Intent(Intent.ACTION_OPEN_DOCUMENT);i.setType("image/jpeg");i.addCategory(Intent.CATEGORY_OPENABLE);startActivityForResult(i,PICK);}catch(RuntimeException e){message(tr("사진 선택기를 열 수 없습니다.","Cannot open photo picker."));}}
+ private void camera(){if(busy||pendingCamera!=null||pendingExport!=null)return;try{
   File dir=new File(getCacheDir(),"capture");if(!dir.exists()&&!dir.mkdirs())throw new IOException();
   pendingCamera=File.createTempFile("photo-",".jpg",dir);
   Uri uri=FileProvider.getUriForFile(this,getPackageName()+".capture",pendingCamera);
@@ -94,14 +94,14 @@ public final class MainActivity extends Activity {
  private void load(Uri uri,boolean capture){if(busy)return;busy=true;generation++;updateMeasurement();message(tr("사진 읽는 중…","Reading photo…"));
   worker.execute(()->{Bitmap b=null;try{b=decode(uri);}catch(Exception|OutOfMemoryError ignored){}Bitmap decoded=b;runOnUiThread(()->{
    if(capture)removeCapture();if(closed){if(decoded!=null)decoded.recycle();return;}busy=false;
-   if(decoded==null){message(tr("지원하지 않거나 너무 큰 사진입니다.","Unsupported or oversized photo."));updateMeasurement();return;}
+   if(decoded==null){message(tr("JPG 사진만 지원합니다. 파일 형식과 크기를 확인하세요.","Choose a valid JPEG of supported size."));updateMeasurement();return;}
    if(source!=null)source.recycle();source=decoded;updating=true;zoom.setProgress(0);x.setProgress(50);y.setProgress(50);headTop.setProgress(10);headBottom.setProgress(85);confirmed.setChecked(false);updating=false;updateCrop();message(tr("표시선을 정수리와 턱에 맞춘 후 확인하세요.","Align crown and chin guides, then confirm."));
   });});
  }
  private InputStream input(Uri uri)throws IOException{InputStream in=getContentResolver().openInputStream(uri);if(in==null)throw new IOException();return in;}
  private Bitmap decode(Uri uri)throws IOException{
   BitmapFactory.Options o=new BitmapFactory.Options();o.inJustDecodeBounds=true;try(InputStream in=input(uri)){BitmapFactory.decodeStream(in,null,o);}
-  if(o.outWidth<1||o.outHeight<1||o.outWidth>50000||o.outHeight>50000)throw new IOException();
+  if(!"image/jpeg".equals(o.outMimeType)||o.outWidth<1||o.outHeight<1||o.outWidth>50000||o.outHeight>50000)throw new IOException();
   int sample=1;while(o.outWidth/sample>4096||o.outHeight/sample>4096||(long)(o.outWidth/sample)*(o.outHeight/sample)>12000000L)sample*=2;
   o.inJustDecodeBounds=false;o.inSampleSize=sample;o.inPreferredConfig=Bitmap.Config.ARGB_8888;
   Bitmap b;try(InputStream in=input(uri)){b=BitmapFactory.decodeStream(in,null,o);}if(b==null)throw new IOException();
@@ -126,7 +126,7 @@ public final class MainActivity extends Activity {
  private String qualityHint(Bitmap b){long sum=0,edge=0,white=0,corners=0,n=0;for(int yy=4;yy<b.getHeight()-4;yy+=8)for(int xx=4;xx<b.getWidth()-4;xx+=8){int p=b.getPixel(xx,yy),r=Color.red(p),g=Color.green(p),bl=Color.blue(p),l=(r*30+g*59+bl*11)/100;int q=b.getPixel(xx+3,yy);int l2=(Color.red(q)*30+Color.green(q)*59+Color.blue(q)*11)/100;sum+=l;edge+=Math.abs(l-l2);n++;if(yy<65&&(xx<55||xx>b.getWidth()-55)){corners++;if(Math.min(r,Math.min(g,bl))>=225&&Math.max(r,Math.max(g,bl))-Math.min(r,Math.min(g,bl))<=18)white++;}}
   return (sum/n<90?tr("밝기 낮음","Low average brightness"):tr("평균 밝기 확인","Average brightness checked"))+" · "+(edge/n<3?tr("흐림 가능성","Possible blur"):tr("선명도 참고 검사","Sharpness hint"))+"\n"+(corners>0&&white*100/corners>=85?tr("상단 모서리 밝은 중성색 추정 (전체 배경 검사 아님)","Upper corners appear light/neutral (not full background check)"):tr("흰색 배경과 그림자를 직접 확인하세요.","Inspect white background and shadows."));
  }
- private void export(boolean print){if(busy||source==null||!confirmed.isChecked()||!PhotoRules.headRange(headTop.getProgress(),headBottom.getProgress())||!PhotoRules.resolution(cropRect()))return;
+ private void export(boolean print){if(busy||pendingExport!=null||source==null||!confirmed.isChecked()||!PhotoRules.headRange(headTop.getProgress(),headBottom.getProgress())||!PhotoRules.resolution(cropRect()))return;
   try{byte[] bytes=print?makePdf():makeJpg();if(bytes==null)throw new IOException();pendingExport=bytes;pendingRequest=print?SAVE_PDF:SAVE_JPG;
    Intent i=new Intent(Intent.ACTION_CREATE_DOCUMENT);i.setType(print?"application/pdf":"image/jpeg");i.addCategory(Intent.CATEGORY_OPENABLE);i.putExtra(Intent.EXTRA_TITLE,print?"passport-35x45-print.pdf":"passport-413x531.jpg");startActivityForResult(i,pendingRequest);
   }catch(Exception e){pendingExport=null;pendingRequest=0;message(tr("파일을 만들 수 없습니다.","Unable to create output."));}
