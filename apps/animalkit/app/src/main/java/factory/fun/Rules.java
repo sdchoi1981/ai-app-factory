@@ -1,0 +1,2 @@
+package factory.fun;
+final class Rules{static int[] options(int correct,int count,java.util.Random random){if(count<3||correct<0||correct>=count)throw new IllegalArgumentException();java.util.ArrayList<Integer> a=new java.util.ArrayList<>();for(int i=0;i<count;i++)if(i!=correct)a.add(i);java.util.Collections.shuffle(a,random);java.util.ArrayList<Integer> b=new java.util.ArrayList<>(a.subList(0,2));b.add(correct);java.util.Collections.shuffle(b,random);return new int[]{b.get(0),b.get(1),b.get(2)};}}
