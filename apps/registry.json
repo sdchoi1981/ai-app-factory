@@ -433,6 +433,244 @@
       }
     },
     {
+      "appId": "photokit",
+      "appName": "PhotoKit",
+      "description": "Compress, resize and convert photos; batch ZIP export",
+      "platform": "android",
+      "applicationId": "com.factory.photokit",
+      "versionName": "1.0.0",
+      "versionCode": 1,
+      "category": "photography",
+      "status": "development",
+      "supportedLanguages": [
+        "ko",
+        "en",
+        "ja"
+      ],
+      "monetization": {
+        "ads": false,
+        "analytics": false
+      },
+      "buildConfiguration": {
+        "path": "apps/photokit",
+        "testFile": "test.mjs",
+        "sharedPackages": []
+      },
+      "releaseConfiguration": {
+        "enabled": false,
+        "defaultTrack": "internal"
+      },
+      "privacyPolicyUrl": null,
+      "privacy": {
+        "dataCollected": [],
+        "notes": "Offline local processing. User-selected document access only; no network, ads or analytics. Temporary exports stored in private cache and removed after use."
+      }
+    },
+    {
+      "appId": "pdfkit",
+      "appName": "PDFKit",
+      "description": "Merge, extract and render PDF pages; rasterized PDF export",
+      "platform": "android",
+      "applicationId": "com.factory.pdfkit",
+      "versionName": "1.0.0",
+      "versionCode": 1,
+      "category": "productivity",
+      "status": "development",
+      "supportedLanguages": [
+        "ko",
+        "en",
+        "ja"
+      ],
+      "monetization": {
+        "ads": false,
+        "analytics": false
+      },
+      "buildConfiguration": {
+        "path": "apps/pdfkit",
+        "testFile": "test.mjs",
+        "sharedPackages": []
+      },
+      "releaseConfiguration": {
+        "enabled": false,
+        "defaultTrack": "internal"
+      },
+      "privacyPolicyUrl": null,
+      "privacy": {
+        "dataCollected": [],
+        "notes": "Offline local processing. User-selected document access only; no network, ads or analytics. Temporary exports stored in private cache and removed after use."
+      }
+    },
+    {
+      "appId": "blurkit",
+      "appName": "BlurKit",
+      "description": "Manually obscure private areas and export a flattened image",
+      "platform": "android",
+      "applicationId": "com.factory.blurkit",
+      "versionName": "1.0.0",
+      "versionCode": 1,
+      "category": "photography",
+      "status": "development",
+      "supportedLanguages": [
+        "ko",
+        "en",
+        "ja"
+      ],
+      "monetization": {
+        "ads": false,
+        "analytics": false
+      },
+      "buildConfiguration": {
+        "path": "apps/blurkit",
+        "testFile": "test.mjs",
+        "sharedPackages": []
+      },
+      "releaseConfiguration": {
+        "enabled": false,
+        "defaultTrack": "internal"
+      },
+      "privacyPolicyUrl": null,
+      "privacy": {
+        "dataCollected": [],
+        "notes": "Offline local processing. User-selected document access only; no network, ads or analytics. Temporary exports stored in private cache and removed after use."
+      }
+    },
+    {
+      "appId": "scankit",
+      "appName": "ScanKit",
+      "description": "Capture or import documents, apply grayscale and export PDF",
+      "platform": "android",
+      "applicationId": "com.factory.scankit",
+      "versionName": "1.0.0",
+      "versionCode": 1,
+      "category": "productivity",
+      "status": "development",
+      "supportedLanguages": [
+        "ko",
+        "en",
+        "ja"
+      ],
+      "monetization": {
+        "ads": false,
+        "analytics": false
+      },
+      "buildConfiguration": {
+        "path": "apps/scankit",
+        "testFile": "test.mjs",
+        "sharedPackages": []
+      },
+      "releaseConfiguration": {
+        "enabled": false,
+        "defaultTrack": "internal"
+      },
+      "privacyPolicyUrl": null,
+      "privacy": {
+        "dataCollected": [],
+        "notes": "Offline local processing. User-selected document access only; no network, ads or analytics. Temporary exports stored in private cache and removed after use."
+      }
+    },
+    {
+      "appId": "gifkit",
+      "appName": "GifKit",
+      "description": "Create animated GIFs from selected photos with adjustable frame delay",
+      "platform": "android",
+      "applicationId": "com.factory.gifkit",
+      "versionName": "1.0.0",
+      "versionCode": 1,
+      "category": "photography",
+      "status": "development",
+      "supportedLanguages": [
+        "ko",
+        "en",
+        "ja"
+      ],
+      "monetization": {
+        "ads": false,
+        "analytics": false
+      },
+      "buildConfiguration": {
+        "path": "apps/gifkit",
+        "testFile": "test.mjs",
+        "sharedPackages": []
+      },
+      "releaseConfiguration": {
+        "enabled": false,
+        "defaultTrack": "internal"
+      },
+      "privacyPolicyUrl": null,
+      "privacy": {
+        "dataCollected": [],
+        "notes": "Offline local processing. User-selected document access only; no network, ads or analytics. Temporary exports stored in private cache and removed after use."
+      }
+    },
+    {
+      "appId": "measurekit",
+      "appName": "MeasureKit",
+      "description": "Sensor level and inclinometer with zero calibration",
+      "platform": "android",
+      "applicationId": "com.factory.measurekit",
+      "versionName": "1.0.0",
+      "versionCode": 1,
+      "category": "tools",
+      "status": "development",
+      "supportedLanguages": [
+        "ko",
+        "en",
+        "ja"
+      ],
+      "monetization": {
+        "ads": false,
+        "analytics": false
+      },
+      "buildConfiguration": {
+        "path": "apps/measurekit",
+        "testFile": "test.mjs",
+        "sharedPackages": []
+      },
+      "releaseConfiguration": {
+        "enabled": false,
+        "defaultTrack": "internal"
+      },
+      "privacyPolicyUrl": null,
+      "privacy": {
+        "dataCollected": [],
+        "notes": "Offline local processing. User-selected document access only; no network, ads or analytics. Temporary exports stored in private cache and removed after use."
+      }
+    },
+    {
+      "appId": "cleankit",
+      "appName": "CleanKit",
+      "description": "Find exact duplicate photos locally; read-only report",
+      "platform": "android",
+      "applicationId": "com.factory.cleankit",
+      "versionName": "1.0.0",
+      "versionCode": 1,
+      "category": "tools",
+      "status": "development",
+      "supportedLanguages": [
+        "ko",
+        "en",
+        "ja"
+      ],
+      "monetization": {
+        "ads": false,
+        "analytics": false
+      },
+      "buildConfiguration": {
+        "path": "apps/cleankit",
+        "testFile": "test.mjs",
+        "sharedPackages": []
+      },
+      "releaseConfiguration": {
+        "enabled": false,
+        "defaultTrack": "internal"
+      },
+      "privacyPolicyUrl": null,
+      "privacy": {
+        "dataCollected": [],
+        "notes": "Offline local processing. User-selected document access only; no network, ads or analytics. Temporary exports stored in private cache and removed after use."
+      }
+    },
+    {
       "appId": "ledkit",
       "appName": "LEDKit",
       "description": "Offline scrolling LED banner with customizable colors, speed and fullscreen mode.",
