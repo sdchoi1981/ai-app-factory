@@ -399,7 +399,7 @@
       "description": "Offline passport photo preparation, live guide, Korean/US/Japan print profiles, personal photo editing and print sheets.",
       "platform": "android",
       "applicationId": "com.factory.passportkit",
-      "versionName": "1.6.1",
+      "versionName": "1.5.3",
       "versionCode": 10,
       "category": "photography",
       "status": "testing",
