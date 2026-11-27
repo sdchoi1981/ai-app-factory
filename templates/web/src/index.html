@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="description" content="A small utility that keeps its settings on this device.">
+  <title>__APP_NAME__</title>
+  <link rel="icon" href="./icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="./packages/ui/styles.css">
+  <script type="module" src="./app.mjs"></script>
+</head>
+<body>
+<main class="factory-page" data-app-id="__APP_ID__">
+  <h1>__APP_NAME__</h1>
+  <div class="factory-fields">
+    <label>
+      <span id="language-label">Language</span>
+      <select class="factory-input" id="language">
+        <option value="ko" lang="ko">한국어</option>
+        <option value="en" lang="en">English</option>
+        <option value="ja" lang="ja">日本語</option>
+      </select>
+    </label>
+    <label>
+      <span id="theme-label">Theme</span>
+      <select class="factory-input" id="theme">
+        <option value="system">System</option>
+        <option value="light">Light</option>
+        <option value="dark">Dark</option>
+      </select>
+    </label>
+  </div>
+  <p id="privacy" class="factory-card">Settings stay on this device.</p>
+</main>
+</body>
+</html>

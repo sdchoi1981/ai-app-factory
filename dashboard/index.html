@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; base-uri 'none'; form-action 'none'">
+  <meta name="robots" content="noindex, nofollow">
+  <title>AI App Factory 대시보드</title>
+  <link rel="stylesheet" href="./dashboard.css">
+  <script type="module" src="./dashboard.mjs"></script>
+</head>
+<body>
+  <a class="skip-link" href="#apps-heading">앱 목록으로 건너뛰기</a>
+  <header class="masthead">
+    <div class="layout masthead-content">
+      <span class="brand-mark" aria-hidden="true"></span>
+      <h1>AI App Factory</h1>
+      <a class="actions-link" id="actions-link" hidden>GitHub Actions <span aria-hidden="true">↗</span></a>
+    </div>
+  </header>
+  <main class="layout">
+    <section aria-labelledby="overview">
+      <h2 id="overview">앱 현황</h2>
+      <p id="loading" role="status">앱 정보를 불러오는 중입니다.</p>
+      <ul class="summary" id="summary" aria-label="앱 상태별 개수" hidden></ul>
+    </section>
+    <section class="apps" aria-labelledby="apps-heading" id="app-section" hidden>
+      <div class="section-title">
+        <h2 id="apps-heading" tabindex="-1">앱 목록</h2>
+        <div class="filter">
+          <label for="status-filter">상태</label>
+          <select id="status-filter">
+            <option value="all">전체</option>
+            <option value="development">개발 중</option>
+            <option value="testing">테스트 중</option>
+            <option value="released">출시</option>
+          </select>
+        </div>
+      </div>
+      <p id="filter-status" class="visually-hidden" role="status"></p>
+      <div class="app-list" id="apps"></div>
+      <p class="empty" id="empty" hidden>이 상태의 앱이 없습니다.</p>
+    </section>
+  </main>
+</body>
+</html>

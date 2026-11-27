@@ -1,0 +1,4 @@
+<resources>
+    <string name="count">回数: %1$d</string>
+    <string name="increment">1 を追加</string>
+</resources>

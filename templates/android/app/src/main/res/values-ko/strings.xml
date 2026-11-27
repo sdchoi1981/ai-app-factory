@@ -1,0 +1,4 @@
+<resources>
+    <string name="count">횟수: %1$d</string>
+    <string name="increment">1 추가</string>
+</resources>

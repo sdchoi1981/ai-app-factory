@@ -1,0 +1,41 @@
+default_platform(:android)
+
+platform :android do
+  desc "Publish a signed App Bundle after checking Play track version codes"
+  lane :publish do
+    app_id = ENV.fetch("FACTORY_ANDROID_APPLICATION_ID")
+    track = ENV.fetch("FACTORY_ANDROID_TRACK")
+    closed_track = ENV.fetch("FACTORY_ANDROID_CLOSED_TRACK")
+    code = Integer(ENV.fetch("FACTORY_ANDROID_VERSION_CODE"), 10)
+    key = ENV.fetch("SUPPLY_JSON_KEY")
+    metadata = ENV.fetch("FACTORY_ANDROID_PUBLISH_METADATA") == "true"
+    rollout = ENV.fetch("FACTORY_ANDROID_ROLLOUT")
+    if track == "production" && ENV["FACTORY_ANDROID_OWNER_APPROVED"] != "true"
+      UI.user_error!("Production requires explicit owner approval")
+    end
+    UI.user_error!("Version code must be a positive Play version code") unless (1..2100000000).cover?(code)
+    tracks = ["internal", "alpha", "beta", closed_track, "production", track].uniq
+    versions = tracks.flat_map do |name|
+      google_play_track_version_codes(package_name: app_id, track: name, json_key: key)
+    end
+    if !versions.empty? && code <= versions.max
+      UI.user_error!("Version code #{code} must exceed the highest visible Play track code #{versions.max}")
+    end
+
+    options = {
+      package_name: app_id,
+      json_key: key,
+      aab: ENV.fetch("FACTORY_ANDROID_BUNDLE"),
+      track: track,
+      release_status: rollout.empty? ? "completed" : "inProgress",
+      metadata_path: ENV.fetch("FACTORY_ANDROID_METADATA"),
+      skip_upload_apk: true,
+      skip_upload_metadata: !metadata,
+      skip_upload_changelogs: !metadata,
+      skip_upload_images: !metadata,
+      skip_upload_screenshots: !metadata
+    }
+    options[:rollout] = Float(rollout) unless rollout.empty?
+    upload_to_play_store(**options)
+  end
+end

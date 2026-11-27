@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name" translatable="false">"__APP_NAME_XML__"</string>
+    <string name="count">Count: %1$d</string>
+    <string name="increment">Add one</string>
+</resources>

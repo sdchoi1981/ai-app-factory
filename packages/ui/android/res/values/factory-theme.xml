@@ -1,0 +1,10 @@
+<resources>
+    <style name="FactoryTheme" parent="@android:style/Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">#EFF4F8</item>
+        <item name="android:colorBackground">#EFF4F8</item>
+        <item name="android:colorAccent">#215BA0</item>
+        <item name="android:statusBarColor">#EFF4F8</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:navigationBarColor">#101A28</item>
+    </style>
+</resources>
