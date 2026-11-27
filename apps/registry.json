@@ -405,7 +405,10 @@
       "status": "testing",
       "supportedLanguages": [
         "ko",
-        "en"
+        "en",
+        "ja",
+        "zh-Hans",
+        "zh-Hant"
       ],
       "monetization": {
         "ads": false,
