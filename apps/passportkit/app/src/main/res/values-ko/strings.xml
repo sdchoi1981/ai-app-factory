@@ -83,4 +83,12 @@
     <string name="stage_save">저장</string>
     <string name="stage_save_hint">편집 단계에서 머리 가이드를 맞추고 확인하세요. 검사는 참고용입니다.</string>
     <string name="stage_paper_preview">인화 PDF 배치 미리보기</string>
+    <string name="gallery_saved">Pictures/PassportKit에 저장했어요.</string>
+    <string name="gallery_open">저장한 사진 열기</string>
+    <string name="gallery_share">저장한 사진 공유</string>
+    <string name="gallery_permission_denied">이 Android 버전에서 JPG를 갤러리에 저장하려면 저장소 권한이 필요해요.</string>
+    <string name="gallery_unavailable">저장한 사진을 열거나 공유할 수 없어요.</string>
+    <string name="export_in_progress">저장 중…</string>
+    <string name="export_disabled">저장하려면 사진을 추가하고, 크기와 자르기 영역을 확인한 뒤 편집에서 머리 가이드를 확인해 주세요.</string>
+    <string name="gallery_save_failed">JPG를 갤러리에 저장할 수 없어요.</string>
 </resources>

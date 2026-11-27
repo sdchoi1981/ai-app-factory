@@ -37,8 +37,16 @@ jobs:
           apk=app/build/outputs/apk/debug/app-debug.apk
           "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify "$apk"
           "$ANDROID_HOME/build-tools/36.0.0/aapt" dump permissions "$apk" | tee "$RUNNER_TEMP/passportkit-permissions.txt"
-          if grep -E "uses-permission.*(android.permission.(INTERNET|ACCESS_NETWORK_STATE|READ_MEDIA_IMAGES|READ_MEDIA_VISUAL_USER_SELECTED|READ_EXTERNAL_STORAGE|WRITE_EXTERNAL_STORAGE|ACCESS_FINE_LOCATION|ACCESS_COARSE_LOCATION)|com.google.android.gms.permission.AD_ID)" "$RUNNER_TEMP/passportkit-permissions.txt"; then
+          if grep -E "uses-permission.*(android.permission.(INTERNET|ACCESS_NETWORK_STATE|READ_MEDIA_IMAGES|READ_MEDIA_VISUAL_USER_SELECTED|READ_EXTERNAL_STORAGE|ACCESS_FINE_LOCATION|ACCESS_COARSE_LOCATION)|com.google.android.gms.permission.AD_ID)" "$RUNNER_TEMP/passportkit-permissions.txt"; then
             echo "Unexpected sensitive permission"; exit 1
+          fi
+          # The Android 8–9 JPG export may request storage access. The APK must
+          # never declare it for newer Android versions or declare it twice.
+          permissions="$RUNNER_TEMP/passportkit-permissions.txt"
+          legacy_writes=$(awk "/^uses-permission[^:]*: name='android[.]permission[.]WRITE_EXTERNAL_STORAGE'/ { count++ } END { print count+0 }" "$permissions")
+          if [[ "$legacy_writes" != 1 ]] ||
+             ! grep -Fxq "uses-permission: name='android.permission.WRITE_EXTERNAL_STORAGE' maxSdkVersion='28'" "$permissions"; then
+            echo "Expected exactly one WRITE_EXTERNAL_STORAGE declaration capped at API 28"; exit 1
           fi
       - uses: actions/upload-artifact@v4
         with:

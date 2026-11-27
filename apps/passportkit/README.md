@@ -18,3 +18,7 @@ Branded navy and original passport icon launch screen, platform-native Android 1
 
 ## 1.5.2 splash visibility
 On the first fresh MainActivity creation in a process, keep the native starting window visible by gating the first draw until 1500 ms after onCreate begins, without sleeping or blocking the UI thread. Skip on restored or subsequent Activity instances, remove the gate and callbacks on pause/destroy. Android 8–11 and 12+ retain their existing launch themes. Actual visible duration varies with device startup and system animation; device timing test pending. No photo, locale or permissions changes.
+
+## 1.6.1 Gallery export
+
+Photo JPG and print-sheet JPG save to Pictures/PassportKit on request. Android 10+ uses MediaStore; Android 8–9 requests write permission only when saving a JPG. PDF still uses the system document picker. The existing photo-first cards show save prerequisites and progress. After a successful JPG save, the user can open the image or explicitly choose a share target. Saved images remain in the gallery until the user removes them. The app does not upload them.

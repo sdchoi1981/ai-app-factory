@@ -83,4 +83,12 @@
     <string name="stage_save">Save</string>
     <string name="stage_save_hint">Align and confirm the head guides in Edit before saving. Checks are advisory.</string>
     <string name="stage_paper_preview">Print PDF layout preview</string>
+    <string name="gallery_saved">Saved to Pictures/PassportKit.</string>
+    <string name="gallery_open">Open saved photo</string>
+    <string name="gallery_share">Share saved photo</string>
+    <string name="gallery_permission_denied">Storage permission is needed to save JPGs to the gallery on this Android version.</string>
+    <string name="gallery_unavailable">The saved photo could not be opened or shared.</string>
+    <string name="export_in_progress">Saving…</string>
+    <string name="export_disabled">To save, add a photo, check its size and crop, and confirm the head guides in Edit.</string>
+    <string name="gallery_save_failed">Could not save the JPG to the gallery.</string>
 </resources>

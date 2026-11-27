@@ -83,4 +83,12 @@
     <string name="stage_save">保存</string>
     <string name="stage_save_hint">編集画面で頭部ガイドを合わせて確認してください。検査は参考情報です。</string>
     <string name="stage_paper_preview">印刷PDFの配置プレビュー</string>
+    <string name="gallery_saved">Pictures/PassportKit に保存しました。</string>
+    <string name="gallery_open">保存した写真を開く</string>
+    <string name="gallery_share">保存した写真を共有</string>
+    <string name="gallery_permission_denied">この Android バージョンで JPG をギャラリーに保存するには、ストレージへのアクセス許可が必要です。</string>
+    <string name="gallery_unavailable">保存した写真を開くことも共有することもできませんでした。</string>
+    <string name="export_in_progress">保存中…</string>
+    <string name="export_disabled">保存するには、写真を追加してサイズと切り抜き範囲を確認し、編集画面で頭部ガイドを確認してください。</string>
+    <string name="gallery_save_failed">JPG をギャラリーに保存できませんでした。</string>
 </resources>
