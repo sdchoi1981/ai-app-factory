@@ -361,11 +361,11 @@
     {
       "appId": "snakekit",
       "appName": "SnakeKit",
-      "description": "Korean offline snake atlas with 100 base taxa, optional 500-entry edition, learning games, conservation, tail animation and offline speech.",
+      "description": "Korean offline snake encyclopedia with optional 500-entry edition, games, exploration and fictional snake creator.",
       "platform": "android",
       "applicationId": "com.factory.snakekit",
-      "versionName": "1.3.0",
-      "versionCode": 4,
+      "versionName": "1.4.0",
+      "versionCode": 5,
       "category": "education",
       "status": "testing",
       "supportedLanguages": [
@@ -390,7 +390,7 @@
       "privacyPolicyUrl": null,
       "privacy": {
         "dataCollected": [],
-        "notes": "Child-directed, no ads or network permission. Favorites and collection stay local. Optional speech uses installed offline Korean voice."
+        "notes": "Child-directed, no ads or network permission. Favorites and collection stay local. Optional speech uses installed offline Korean voice. Fictional snake creations are saved locally only."
       }
     }
   ]
