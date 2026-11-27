@@ -13,6 +13,10 @@ jobs:
   photo-apk:
     runs-on: ubuntu-latest
     timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        edition: [base, extended]
     steps:
       - uses: actions/checkout@v4
         with:
@@ -33,12 +37,13 @@ jobs:
           packages: 'platform-tools platforms;android-36 build-tools;36.0.0'
           log-accepted-android-sdk-licenses: 'false'
       - name: Build verified extended catalog
+        if: matrix.edition == 'extended'
         run: node apps/snakekit/prepare-catalog.mjs
       - name: Fetch and verify curated photo files
         run: node apps/snakekit/prepare-photos.mjs
       - name: Build and verify offline app
         env:
-          SNAKEKIT_EXTENDED: 'true'
+          SNAKEKIT_EXTENDED: ${{ matrix.edition == 'extended' && 'true' || 'false' }}
         run: |
           set -euo pipefail
           node scripts/test-app.mjs snakekit
@@ -47,11 +52,11 @@ jobs:
           "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify "$apk"
           if "$ANDROID_HOME/build-tools/36.0.0/aapt" dump permissions "$apk" | grep -F 'android.permission.INTERNET'; then exit 1; fi
           unzip -p "$apk" assets/index.html > "$RUNNER_TEMP/catalog.html"
-          node --input-type=module -e "import fs from 'node:fs'; const s=fs.readFileSync(process.argv[1],'utf8'); const d=JSON.parse(s.match(/const SNAKES=(.*?);\\nconst GROUPS/s)[1]); if(d.length!==500||new Set(d.map(x=>x.scientific)).size!==500)process.exit(1)" "$RUNNER_TEMP/catalog.html"
+          node --input-type=module -e "import fs from 'node:fs'; const s=fs.readFileSync(process.argv[1],'utf8'); const d=JSON.parse(s.match(/const SNAKES=(.*?);\\nconst GROUPS/s)[1]); const expected=process.env.SNAKEKIT_EXTENDED==='true'?500:100; if(d.length!==expected||new Set(d.map(x=>x.scientific)).size!==expected)process.exit(1)" "$RUNNER_TEMP/catalog.html"
           node --input-type=module -e "import fs from 'node:fs'; const s=fs.readFileSync(process.argv[1],'utf8'); const d=JSON.parse(s.match(/const PHOTO_DATA=(.*?);\nconst CONSERVATION/s)[1]); if(Object.keys(d).length!==6||Object.values(d).some(x=>!x.data.startsWith('data:image/jpeg;base64,')||!x.credit)) process.exit(1)" "$RUNNER_TEMP/catalog.html"
       - uses: actions/upload-artifact@v4
         with:
-          name: snakekit-OFFLINE-PHOTO-APK
+          name: snakekit-${{ matrix.edition }}-OFFLINE-PHOTO-APK
           path: apps/snakekit/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 7

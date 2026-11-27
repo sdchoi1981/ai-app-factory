@@ -15,7 +15,7 @@ const groups=[
  ['Gloydius','viper'],['Echis','viper'],['Pseudonaja','elapid'],['Pseudechis','elapid'],
  ['Python','python'],['Morelia','python'],['Lampropeltis','other'],['Thamnophis','other'],
  ['Lycodon','other'],['Atractus','other'],['Dipsas','other'],['Sibon','other'],
- ['Boiga','other'],['Oligodon','other'],['Hebius','other'],['Nerodia','other']
+ ['Boiga','other'],['Oligodon','other'],['Hebius','other'],['Nerodia','other'],['Philodryas','other'],['Erythrolamprus','other'],['Oxyrhopus','other'],['Tantilla','other'],['Apostolepis','other'],['Leptodeira','other'],['Chironius','other'],['Dendrelaphis','other']
 ];
 const added=[];
 async function get(path){
@@ -33,15 +33,21 @@ async function get(path){
 }
 for(const [genus,group] of groups){
  if(added.length===400)break;
- const g=await get('species/match?rank=GENUS&strict=true&name='+encodeURIComponent(genus));
- if(g.rank!=='GENUS'||g.matchType!=='EXACT'||g.status!=='ACCEPTED'||g.canonicalName!==genus||g.class!=='Reptilia'||g.order!=='Squamata'||!Number.isSafeInteger(g.usageKey)){console.log('Skipped unmatched genus '+genus);continue;}
+ const families=group==='elapid'?['Elapidae']:group==='viper'?['Viperidae']:group==='python'?['Pythonidae']:['Colubridae','Dipsadidae','Natricidae','Lamprophiidae'];
+ // Resolve in the explicitly selected backbone checklist rather than a fuzzy name match.
+ const q=new URLSearchParams({q:genus,rank:'GENUS',status:'ACCEPTED',datasetKey:backbone,limit:'100'});
+ const found=await get('species/search?'+q);
+ if(!Array.isArray(found.results))throw Error('Invalid genus search response');
+ const eligible=found.results.filter(g=>g.rank==='GENUS'&&g.taxonomicStatus==='ACCEPTED'&&g.canonicalName===genus&&g.datasetKey===backbone&&families.includes(g.family)&&g.kingdom==='Animalia'&&g.phylum==='Chordata'&&Number.isSafeInteger(g.key));
+ if(eligible.length!==1){console.log('Skipped '+genus+'; exact backbone candidates: '+JSON.stringify(found.results.slice(0,3).map(g=>({name:g.canonicalName,rank:g.rank,status:g.taxonomicStatus,family:g.family,order:g.order,class:g.class,datasetKey:g.datasetKey}))));continue;}
+ const g=eligible[0];
  let offset=0;const candidates=[];
  for(let page=0;page<10;page++){
-  const result=await get('species/'+g.usageKey+'/children?limit=300&offset='+offset);
+  const result=await get('species/'+g.key+'/children?limit=300&offset='+offset);
   if(!Array.isArray(result.results))throw Error('Invalid taxon page');
   for(const s of result.results){
    const name=s.canonicalName;
-   if(s.rank!=='SPECIES'||s.taxonomicStatus!=='ACCEPTED'||s.genus!==genus||s.class!=='Reptilia'||s.order!=='Squamata'||s.extinct===true||s.datasetKey!==backbone||!Number.isSafeInteger(s.key)||typeof name!=='string'||!new RegExp('^'+genus+' [a-z][a-z-]+$').test(name))continue;
+   if(s.rank!=='SPECIES'||s.taxonomicStatus!=='ACCEPTED'||s.genus!==genus||!families.includes(s.family)||s.kingdom!=='Animalia'||s.phylum!=='Chordata'||s.extinct===true||s.datasetKey!==backbone||!Number.isSafeInteger(s.key)||typeof name!=='string'||!new RegExp('^'+genus+' [a-z][a-z-]+$').test(name))continue;
    candidates.push(s);
   }
   if(result.endOfRecords||!result.results.length)break;
