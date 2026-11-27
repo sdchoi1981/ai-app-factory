@@ -1,0 +1,110 @@
+name: Sign Android AAB only
+on:
+  workflow_dispatch:
+    inputs:
+      app:
+        description: Android app ID
+        required: true
+        type: string
+      owner-approved:
+        description: Confirm signing authorization and PUBLIC artifact visibility
+        type: boolean
+        default: false
+permissions:
+  contents: read
+concurrency:
+  group: aab-sign-${{ inputs.app }}
+  cancel-in-progress: false
+jobs:
+  build:
+    if: github.ref == 'refs/heads/main' && inputs.owner-approved && vars.FACTORY_ENABLE_AAB_SIGNING == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    outputs:
+      app: ${{ steps.validate.outputs.app }}
+      path: ${{ steps.validate.outputs.path }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - id: validate
+        env:
+          APP: ${{ inputs.app }}
+        run: |
+          set -euo pipefail
+          [[ "$APP" != all ]]
+          node scripts/validate-apps.mjs --matrix --platform android --app "$APP" > "$RUNNER_TEMP/app.json"
+          jq -e '.include | length == 1' "$RUNNER_TEMP/app.json" >/dev/null
+          echo "app=$(jq -r '.include[0].appId' "$RUNNER_TEMP/app.json")" >> "$GITHUB_OUTPUT"
+          echo "path=$(jq -r '.include[0].path' "$RUNNER_TEMP/app.json")" >> "$GITHUB_OUTPUT"
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.13'
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools platforms;android-36 build-tools;36.0.0'
+          log-accepted-android-sdk-licenses: 'false'
+      - name: Test and build without secrets
+        env:
+          APP: ${{ steps.validate.outputs.app }}
+        run: |
+          node scripts/test-app.mjs "$APP"
+          node scripts/build-app.mjs "$APP"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: signing-input
+          path: ${{ steps.validate.outputs.path }}/app/build/outputs/bundle/release/app-release.aab
+          if-no-files-found: error
+          retention-days: 1
+  sign:
+    needs: build
+    if: github.ref == 'refs/heads/main' && inputs.owner-approved
+    environment: signing-${{ needs.build.outputs.app }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: actions/download-artifact@v4
+        with:
+          name: signing-input
+          path: ${{ needs.build.outputs.path }}/app/build/outputs/bundle/release
+      - name: Sign only (no Play credentials or upload)
+        env:
+          APP: ${{ needs.build.outputs.app }}
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_STORE_PASSWORD: ${{ secrets.ANDROID_STORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          umask 077
+          temp="$(mktemp -d "$RUNNER_TEMP/key.XXXXXX")"
+          trap 'rm -rf "$temp"' EXIT
+          : "${ANDROID_KEYSTORE_BASE64:?Configure app-specific environment secrets}"
+          export ANDROID_KEYSTORE_PATH="$temp/upload.p12"
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 -d > "$ANDROID_KEYSTORE_PATH"
+          unset ANDROID_KEYSTORE_BASE64
+          mkdir -p "$RUNNER_TEMP/signed-output"
+          node scripts/sign-aab.mjs "$APP" "$RUNNER_TEMP/signed-output/$APP-release.aab"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ needs.build.outputs.app }}-SIGNED-AAB
+          path: ${{ runner.temp }}/signed-output/*.aab
+          if-no-files-found: error
+          retention-days: 1

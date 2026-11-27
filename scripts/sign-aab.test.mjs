@@ -1,0 +1,27 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {spawnSync} from 'node:child_process';
+import {cpSync,mkdirSync,mkdtempSync,readFileSync,writeFileSync,rmSync,existsSync} from 'node:fs';
+import {join} from 'node:path';
+import {tmpdir} from 'node:os';
+import {fileURLToPath} from 'node:url';
+const root=fileURLToPath(new URL('../',import.meta.url));
+test('sign-only script verifies disposable signed bundle and rejects invalid output or missing key',t=>{
+ const box=mkdtempSync(join(tmpdir(),'factory-sign-test-'));
+ t.after(()=>rmSync(box,{recursive:true,force:true}));
+ const repo=join(box,'repo');
+ const input=join(repo,'apps/unitkit/app/build/outputs/bundle/release');
+ mkdirSync(input,{recursive:true});mkdirSync(join(repo,'scripts'),{recursive:true});
+ for(const p of ['scripts/registry.mjs','scripts/sign-aab.mjs','apps/unitkit/settings.gradle','apps/unitkit/app/build.gradle','apps/unitkit/test-conversions.js'])cpSync(join(root,p),join(repo,p));
+ const registry=JSON.parse(readFileSync(join(root,'apps/registry.json'),'utf8'));
+ writeFileSync(join(repo,'apps/registry.json'),JSON.stringify({apps:registry.apps.filter(a=>a.appId==='unitkit')}));
+ const key=join(box,'disposable.p12'),out=join(box,'signed.aab');
+ const env={...process.env,ANDROID_KEYSTORE_PATH:key,ANDROID_KEY_ALIAS:'test',ANDROID_STORE_PASSWORD:'synthetic-test-only',ANDROID_KEY_PASSWORD:'synthetic-test-only'};
+ const call=(cmd,args,ok=true,custom=env)=>{const r=spawnSync(cmd,args,{cwd:repo,env:custom,encoding:'utf8',timeout:30000});assert.ifError(r.error);if(ok)assert.equal(r.status,0,r.stderr);else assert.notEqual(r.status,0);return r};
+ writeFileSync(join(box,'sample.txt'),'synthetic signing fixture, not an installable AAB');
+ call('jar',['cf',join(input,'app-release.aab'),'-C',box,'sample.txt']);
+ call('keytool',['-genkeypair','-alias','test','-keyalg','RSA','-keysize','2048','-validity','2','-dname','CN=Disposable CI Fixture','-storetype','PKCS12','-keystore',key,'-storepass:env','ANDROID_STORE_PASSWORD','-keypass:env','ANDROID_KEY_PASSWORD']);
+ const run=(target,ok=true,custom=env)=>call(process.execPath,['scripts/sign-aab.mjs','unitkit',target],ok,custom);
+ run(out,true);assert.ok(existsSync(out));run(out,false);run(join(repo,'no.aab'),false);run(join(box,'missing.aab'),false,{...env,ANDROID_KEYSTORE_PATH:''});assert.ok(!existsSync(join(box,'missing.aab')));
+ cpSync(out,join(input,'app-release.aab'));run(join(box,'double.aab'),false);
+});
