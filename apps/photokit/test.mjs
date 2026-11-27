@@ -7,3 +7,11 @@ assert.match(source,/selected\.get\(previewIndex\)/);
 assert.match(source,/target<0\|\|target>=selected\.size\(\)/);
 assert.match(source,/DocumentsContract\.deleteDocument/);
 console.log('Batch preview navigation and incomplete document cleanup wiring verified');
+
+assert.match(source, /private void showWorkspace\(boolean output\)/);
+assert.match(source, /photoWorkspace\.setVisibility\(output\?View\.GONE:View\.VISIBLE\)/);
+assert.match(source, /outputTab\.setEnabled\(!busy&&!selected\.isEmpty\(\)\)/);
+assert.match(source, /ValueAnimator\.areAnimatorsEnabled\(\)/);
+assert.match(source, /setImageResource\(R\.drawable\.photo_workbench\)/);
+assert.match(source, /previewFeedback\.setAccessibilityLiveRegion/);
+console.log('Contextual photo and output navigation, empty state artwork and motion controls checked');
