@@ -16,3 +16,14 @@ assert.throws(()=>run('makerUpsert(Array.from({length:30},(_,i)=>({id:"snake-"+i
 assert.equal(run('makerRead(JSON.parse(JSON.stringify(makerUpsert([],"snake-a",{name:"라벤더",tail:"spider",color:"#C4ACD8",length:12.5})) ))[0].config.length'),12.5);
 assert.equal(run('makerRead(JSON.parse(JSON.stringify(makerUpsert([],"snake-a",{name:"라벤더",tail:"spider",color:"#C4ACD8",length:12.5})) ))[0].config.color'),'#c4acd8');
 console.log('SnakeKit maker: normalization, shapes, local collection, edit and capacity checks passed');
+
+assert.equal(run('simTarget(-100,999).x'),22);
+assert.equal(run('simTarget(-100,999).y'),218);
+assert.equal(run('simStart({length:15}).trail.length'),42);
+assert.ok(run('simStart({length:.3}).trail.length<simStart({length:15}).trail.length'));
+assert.equal(run('simStep(simStart({}),{x:180,y:120},"normal","land",.05).x'),180);
+assert.ok(run('simStep(simStart({}),{x:300,y:120},"fast","land",.05).x>simStep(simStart({}),{x:300,y:120},"slow","land",.05).x'));
+assert.ok(run('simStep(simStart({}),{x:300,y:120},"normal","land",.05).x>simStep(simStart({}),{x:300,y:120},"normal","water",.05).x'));
+assert.equal(run('simStep(simStart({}),{x:300,y:120},"normal","land",999).x'),run('simStep(simStart({}),{x:300,y:120},"normal","land",.05).x'));
+assert.ok(run('(()=>{let s=simStart({length:15});for(let i=0;i<200;i++)s=simStep(s,{x:999,y:-999},"fast","water",.05);return s.x<=338&&s.y>=22&&s.trail.every(p=>Number.isFinite(p.x)&&Number.isFinite(p.y))})()'));
+console.log('SnakeKit simulator: movement limits, terrain, speed and trail checks passed');
