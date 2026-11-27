@@ -1,0 +1,3 @@
+import com.factory.qrkit.QrCodec;
+import com.google.zxing.common.BitMatrix;
+public class QrCodecTest {public static void main(String[] args)throws Exception{int count=0;for(String s:new String[]{"hello","https://example.org/path?q=1","안녕하세요","日本語 😀","a".repeat(1000)}){BitMatrix b=QrCodec.encode(s,512);String actual=QrCodec.decode(b.getWidth(),b.getHeight(),QrCodec.pixels(b));if(!s.equals(actual))throw new AssertionError("Roundtrip");count++;}for(String s:new String[]{""," ".repeat(10),"a".repeat(1201)}){try{QrCodec.encode(s,512);throw new AssertionError("Invalid accepted");}catch(IllegalArgumentException expected){count++;}}System.out.println(count+" QRKit checks passed");}}
