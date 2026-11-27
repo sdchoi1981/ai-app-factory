@@ -1,0 +1,33 @@
+<resources>
+    <string name="app_name">QRKit</string>
+    <string name="workspace_summary">オフラインでQRコードを作成・読み取り</string>
+    <string name="create_tab">作成</string>
+    <string name="scan_tab">読み取り</string>
+    <string name="preview_title">QRプレビュー</string>
+    <string name="preview_empty">下にテキストまたはURLを入力してコードを作成します。</string>
+    <string name="preview_ready">QRコードが完成しました。別の端末のカメラをこの画面に向けてください。</string>
+    <string name="qr_image">作成したQRコード</string>
+    <string name="input_label">内容</string>
+    <string name="input_hint">テキストまたはURL</string>
+    <string name="byte_count">%1$d / %2$d バイト（UTF-8）</string>
+    <string name="input_limit">UTF-8で1,200バイト以内で入力してください。</string>
+    <string name="generate">QRを作成</string>
+    <string name="scan_title">QRコードを読み取る</string>
+    <string name="scan_guide">カメラを開き、QRコード全体を枠の中央に合わせてください。</string>
+    <string name="open_camera">カメラを開く</string>
+    <string name="scan_privacy">カメラの画像は保存されません。リンクは自動で開きません。</string>
+    <string name="result_title">読み取り結果</string>
+    <string name="result_empty">まだコードを読み取っていません。</string>
+    <string name="copy_result">結果をコピー</string>
+    <string name="result_copied">クリップボードにコピーしました。</string>
+    <string name="no_camera">使用できるカメラがありません。</string>
+    <string name="permission_failed">カメラの権限をリクエストできません。</string>
+    <string name="camera_unavailable">読み取り画面を開けません。</string>
+    <string name="permission_required">コードを読み取るには、設定でQRKitのカメラへのアクセスを許可してください。</string>
+    <string name="camera_failed">カメラを起動できませんでした。他のカメラアプリを閉じて再試行してください。</string>
+    <string name="scan_cancelled">読み取りをキャンセルしました。</string>
+    <string name="scanner_title">カメラで読み取る</string>
+    <string name="scanner_starting">カメラを起動しています…</string>
+    <string name="scanner_align">QRコード全体を枠に入れ、カメラを動かさずにお待ちください。</string>
+    <string name="scanner_cancel">読み取りを中止</string>
+</resources>

@@ -1,1 +1,33 @@
-<resources><string name="app_name">QRKit</string></resources>
+<resources>
+    <string name="app_name">QRKit</string>
+    <string name="workspace_summary">Create and read QR codes offline</string>
+    <string name="create_tab">Create</string>
+    <string name="scan_tab">Scan</string>
+    <string name="preview_title">QR preview</string>
+    <string name="preview_empty">Add text or a URL below to create your code.</string>
+    <string name="preview_ready">QR ready. Point another camera at this screen.</string>
+    <string name="qr_image">Generated QR code</string>
+    <string name="input_label">Content</string>
+    <string name="input_hint">Text or URL</string>
+    <string name="byte_count">%1$d / %2$d bytes (UTF-8)</string>
+    <string name="input_limit">Enter up to 1,200 UTF-8 bytes.</string>
+    <string name="generate">Generate QR</string>
+    <string name="scan_title">Read a QR code</string>
+    <string name="scan_guide">Open the camera and center the entire QR code in the frame.</string>
+    <string name="open_camera">Open camera</string>
+    <string name="scan_privacy">Camera images are not saved. Links are never opened automatically.</string>
+    <string name="result_title">Scan result</string>
+    <string name="result_empty">No code scanned yet.</string>
+    <string name="copy_result">Copy result</string>
+    <string name="result_copied">Copied to clipboard.</string>
+    <string name="no_camera">No camera is available.</string>
+    <string name="permission_failed">Unable to request camera permission.</string>
+    <string name="camera_unavailable">Unable to open the scanner.</string>
+    <string name="permission_required">Allow QRKit camera access in Settings to scan codes.</string>
+    <string name="camera_failed">Could not start camera. Close other camera apps and retry.</string>
+    <string name="scan_cancelled">Scan cancelled.</string>
+    <string name="scanner_title">Camera scanner</string>
+    <string name="scanner_starting">Starting camera…</string>
+    <string name="scanner_align">Hold steady with the full code inside the frame.</string>
+    <string name="scanner_cancel">Cancel scan</string>
+</resources>

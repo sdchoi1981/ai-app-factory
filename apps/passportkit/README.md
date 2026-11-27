@@ -22,3 +22,7 @@ On the first fresh MainActivity creation in a process, keep the native starting 
 ## 1.5.3 Gallery export (version code 10)
 
 Photo JPG and print-sheet JPG save to Pictures/PassportKit on request. Android 10+ uses MediaStore; Android 8–9 requests write permission only when saving a JPG. PDF still uses the system document picker. The existing photo-first cards show save prerequisites and progress. After a successful JPG save, the user can open the image or explicitly choose a share target. Saved images remain in the gallery until the user removes them. The app does not upload them.
+
+## Photo studio workflow
+
+Use the persistent workflow bar to switch between Photo, Edit and Save. The editor keeps the photo above separate crop and head-guide panels. The bottom action advances from framing to guide confirmation to the output screen. Save offers a direct photo JPG action alongside a separate print layout preview and print-sheet or PDF actions. Official references, the existing Pro information and Clear Photo are grouped in the toolbar menu. The illustration is drawn locally, and short screen transitions respect the system animation setting. The activity retains its secure window and does not change the gallery or document permissions.

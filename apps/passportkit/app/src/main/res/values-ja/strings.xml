@@ -91,4 +91,10 @@
     <string name="export_in_progress">保存中…</string>
     <string name="export_disabled">保存するには、写真を追加してサイズと切り抜き範囲を確認し、編集画面で頭部ガイドを確認してください。</string>
     <string name="gallery_save_failed">JPG をギャラリーに保存できませんでした。</string>
+    <string name="studio_more">その他の操作</string>
+    <string name="studio_references">公式写真ガイド</string>
+    <string name="studio_step">%1$d · %2$s</string>
+    <string name="studio_crop">切り抜き</string>
+    <string name="studio_guides">頭部ガイド</string>
+    <string name="studio_print">印刷レイアウト</string>
 </resources>

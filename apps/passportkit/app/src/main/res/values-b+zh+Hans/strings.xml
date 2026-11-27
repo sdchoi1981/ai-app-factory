@@ -91,4 +91,10 @@
     <string name="export_in_progress">正在保存…</string>
     <string name="export_disabled">保存前，请添加照片，检查尺寸和裁剪范围，并在编辑页面确认头部辅助线。</string>
     <string name="gallery_save_failed">无法将 JPG 保存到相册。</string>
+    <string name="studio_more">更多选项</string>
+    <string name="studio_references">官方照片指南</string>
+    <string name="studio_step">%1$d · %2$s</string>
+    <string name="studio_crop">裁剪</string>
+    <string name="studio_guides">头部参考线</string>
+    <string name="studio_print">打印布局</string>
 </resources>
