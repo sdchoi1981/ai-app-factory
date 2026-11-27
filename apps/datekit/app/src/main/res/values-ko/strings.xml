@@ -1,0 +1,17 @@
+<resources>
+    <string name="app_name">DateKit</string>
+    <string name="subtitle">날짜 차이 · 디데이 · 날짜 더하기</string>
+    <string name="difference_title">날짜 사이 일수</string>
+    <string name="start_date">시작일</string>
+    <string name="end_date">종료일</string>
+    <string name="swap">날짜 바꾸기</string>
+    <string name="days_result">날짜 차이: %1$d일</string>
+    <string name="inclusive_result">시작일과 종료일 포함: %1$d일</string>
+    <string name="dday_result">오늘부터 종료일까지: %1$s</string>
+    <string name="offset_title">날짜 더하기 / 빼기</string>
+    <string name="offset_hint">시작일 기준 일수 (음수 가능)</string>
+    <string name="offset_result">결과: %1$s</string>
+    <string name="invalid_offset">1900~9999년 사이 날짜가 되는 정수를 입력하세요.</string>
+    <string name="reset">초기화</string>
+    <string name="offline">오프라인 · 현재 버전은 광고 및 분석 없음</string>
+</resources>

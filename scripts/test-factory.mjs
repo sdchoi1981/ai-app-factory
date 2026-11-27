@@ -26,6 +26,11 @@ test('Factory CLI scaffolds, validates, tests, builds and selects apps', t => {
 
   const read = path => readFileSync(join(sandbox, path), 'utf8');
   const write = (path, contents) => writeFileSync(join(sandbox, path), contents);
+  // This synthetic scaffold fixture copies UnitKit only. The merge gate separately tests every real registry entry.
+  const fixtureRegistry = JSON.parse(read('apps/registry.json'));
+  fixtureRegistry.apps = fixtureRegistry.apps.filter(app => app.appId === 'unitkit');
+  assert.equal(fixtureRegistry.apps.length, 1);
+  write('apps/registry.json', JSON.stringify(fixtureRegistry, null, 2) + '\n');
   const exists = path => existsSync(join(sandbox, path));
   const run = (command, args, errorPattern) => {
     const result = spawnSync(command, args, { cwd: sandbox, encoding: 'utf8', timeout: 30_000 });
