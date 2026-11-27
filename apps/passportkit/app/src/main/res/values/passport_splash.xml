@@ -1,0 +1,10 @@
+<resources>
+    <color name="passport_splash_color">#154D67</color>
+    <style name="PassportLaunchTheme" parent="FactoryTheme">
+        <item name="android:windowBackground">@drawable/passport_splash_background</item>
+        <item name="android:statusBarColor">@color/passport_splash_color</item>
+        <item name="android:navigationBarColor">@color/passport_splash_color</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowLightNavigationBar">false</item>
+    </style>
+</resources>
