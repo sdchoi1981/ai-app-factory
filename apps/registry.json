@@ -431,6 +431,176 @@
         "dataCollected": [],
         "notes": "Local camera permission for guided capture only; no network, tracking or identity recognition. Temporary capture cache removed after result; exports to user-selected location. Ads and billing disabled."
       }
+    },
+    {
+      "appId": "ledkit",
+      "appName": "LEDKit",
+      "description": "Offline scrolling LED banner with customizable colors, speed and fullscreen mode.",
+      "platform": "android",
+      "applicationId": "com.factory.ledkit",
+      "versionName": "1.0.0",
+      "versionCode": 1,
+      "category": "tools",
+      "status": "development",
+      "supportedLanguages": [
+        "ko",
+        "en",
+        "ja"
+      ],
+      "monetization": {
+        "ads": false,
+        "analytics": false
+      },
+      "buildConfiguration": {
+        "path": "apps/ledkit",
+        "testFile": "test.mjs",
+        "sharedPackages": []
+      },
+      "releaseConfiguration": {
+        "enabled": false,
+        "defaultTrack": "internal"
+      },
+      "privacyPolicyUrl": null,
+      "privacy": {
+        "dataCollected": [],
+        "notes": "Offline only. Local settings or game progress where applicable; no accounts, ads, analytics or network. Family-friendly content."
+      }
+    },
+    {
+      "appId": "partykit",
+      "appName": "PartyKit",
+      "description": "Offline decision wheel, coin toss, dice and family-friendly party prompts.",
+      "platform": "android",
+      "applicationId": "com.factory.partykit",
+      "versionName": "1.0.0",
+      "versionCode": 1,
+      "category": "entertainment",
+      "status": "development",
+      "supportedLanguages": [
+        "ko",
+        "en",
+        "ja"
+      ],
+      "monetization": {
+        "ads": false,
+        "analytics": false
+      },
+      "buildConfiguration": {
+        "path": "apps/partykit",
+        "testFile": "test.mjs",
+        "sharedPackages": []
+      },
+      "releaseConfiguration": {
+        "enabled": false,
+        "defaultTrack": "internal"
+      },
+      "privacyPolicyUrl": null,
+      "privacy": {
+        "dataCollected": [],
+        "notes": "Offline only. Local settings or game progress where applicable; no accounts, ads, analytics or network. Family-friendly content."
+      }
+    },
+    {
+      "appId": "aquakit",
+      "appName": "AquaKit",
+      "description": "Offline illustrated aquarium, feed fish and unlock collectible species.",
+      "platform": "android",
+      "applicationId": "com.factory.aquakit",
+      "versionName": "1.0.0",
+      "versionCode": 1,
+      "category": "entertainment",
+      "status": "development",
+      "supportedLanguages": [
+        "ko",
+        "en",
+        "ja"
+      ],
+      "monetization": {
+        "ads": false,
+        "analytics": false
+      },
+      "buildConfiguration": {
+        "path": "apps/aquakit",
+        "testFile": "test.mjs",
+        "sharedPackages": []
+      },
+      "releaseConfiguration": {
+        "enabled": false,
+        "defaultTrack": "internal"
+      },
+      "privacyPolicyUrl": null,
+      "privacy": {
+        "dataCollected": [],
+        "notes": "Offline only. Local settings or game progress where applicable; no accounts, ads, analytics or network. Family-friendly content."
+      }
+    },
+    {
+      "appId": "monsterkit",
+      "appName": "MonsterKit",
+      "description": "Offline fictional monster collection, egg hatching, care and evolution.",
+      "platform": "android",
+      "applicationId": "com.factory.monsterkit",
+      "versionName": "1.0.0",
+      "versionCode": 1,
+      "category": "entertainment",
+      "status": "development",
+      "supportedLanguages": [
+        "ko",
+        "en",
+        "ja"
+      ],
+      "monetization": {
+        "ads": false,
+        "analytics": false
+      },
+      "buildConfiguration": {
+        "path": "apps/monsterkit",
+        "testFile": "test.mjs",
+        "sharedPackages": []
+      },
+      "releaseConfiguration": {
+        "enabled": false,
+        "defaultTrack": "internal"
+      },
+      "privacyPolicyUrl": null,
+      "privacy": {
+        "dataCollected": [],
+        "notes": "Offline only. Local settings or game progress where applicable; no accounts, ads, analytics or network. Family-friendly content."
+      }
+    },
+    {
+      "appId": "animalkit",
+      "appName": "AnimalKit",
+      "description": "Offline illustrated animal facts and family-friendly quizzes.",
+      "platform": "android",
+      "applicationId": "com.factory.animalkit",
+      "versionName": "1.0.0",
+      "versionCode": 1,
+      "category": "education",
+      "status": "development",
+      "supportedLanguages": [
+        "ko",
+        "en",
+        "ja"
+      ],
+      "monetization": {
+        "ads": false,
+        "analytics": false
+      },
+      "buildConfiguration": {
+        "path": "apps/animalkit",
+        "testFile": "test.mjs",
+        "sharedPackages": []
+      },
+      "releaseConfiguration": {
+        "enabled": false,
+        "defaultTrack": "internal"
+      },
+      "privacyPolicyUrl": null,
+      "privacy": {
+        "dataCollected": [],
+        "notes": "Offline only. Local settings or game progress where applicable; no accounts, ads, analytics or network. Family-friendly content."
+      }
     }
   ]
 }
