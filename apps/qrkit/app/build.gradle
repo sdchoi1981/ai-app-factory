@@ -26,3 +26,5 @@ dependencies {
     implementation 'com.journeyapps:zxing-android-embedded:4.3.0'
     implementation 'com.google.zxing:core:3.5.4'
 }
+
+apply from: rootProject.file('../../packages/ads/android/banner.gradle')
