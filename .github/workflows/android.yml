@@ -24,6 +24,8 @@ jobs:
           gradle-version: '8.13'
       - name: Test conversion logic
         run: node test-conversions.js
+      - name: Set up Android SDK command-line tools
+        uses: android-actions/setup-android@v3
       - name: Install SDK
         run: sdkmanager 'platforms;android-36' 'build-tools;36.0.0'
       - name: Build and lint
