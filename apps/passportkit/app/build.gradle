@@ -26,3 +26,12 @@ dependencies {
     implementation 'androidx.core:core:1.15.0'
     implementation 'com.google.mlkit:face-detection:16.1.7'
 }
+
+apply from: rootProject.file('../../packages/ads/android/banner.gradle')
+
+if (providers.gradleProperty('factoryTestAds').orElse('false').get() == 'true') {
+    android.sourceSets.debug {
+        manifest.srcFile 'src/adtest/AndroidManifest.xml'
+        java.srcDir 'src/adtest/java'
+    }
+}

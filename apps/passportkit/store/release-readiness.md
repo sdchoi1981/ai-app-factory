@@ -22,3 +22,7 @@ Baseline app `com.factory.passportkit`, 1.5.3 (10), Android 8+, target API 36. R
 - With separate owner authorization, verify signing, an internal or closed testing installation, and available crash and ANR evidence. Record account and device results before updating the dashboard from testing. Ads and billing require separate test integration, consent and policy verification before production activation.
 
 [Google Play testing requirements](https://support.google.com/googleplay/android-developer/answer/14151465) · [Data safety](https://support.google.com/googleplay/android-developer/answer/10787469) · [App signing](https://developer.android.com/studio/publish/app-signing)
+
+## Ads test build
+
+The factory test-ads workflow builds `com.factory.passportkit.adtest` with Google's sample ad IDs. It opens a dedicated consent and test banner screen. The camera, photo picker, gallery providers and photo editor are unavailable in this build. Verify consent handling and the test banner on an Android device before treating ad behavior as validated. Use the standard offline APK for photo workflow verification.

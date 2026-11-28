@@ -434,14 +434,16 @@
       ],
       "monetization": {
         "ads": false,
-        "analytics": false
+        "analytics": false,
+        "testBannerPrepared": true
       },
       "buildConfiguration": {
         "path": "apps/passportkit",
         "testFile": "test.mjs",
         "sharedPackages": [
           "core",
-          "ui"
+          "ui",
+          "ads"
         ]
       },
       "releaseConfiguration": {
