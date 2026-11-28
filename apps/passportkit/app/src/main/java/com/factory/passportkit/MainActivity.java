@@ -1,6 +1,7 @@
 package com.factory.passportkit;
 
 import android.Manifest;
+import android.animation.ValueAnimator;
 import android.app.Activity;
 import android.content.pm.PackageManager;
 import android.os.Build;
@@ -13,11 +14,13 @@ import android.graphics.*;
 import android.graphics.pdf.PdfDocument;
 import android.media.ExifInterface;
 import android.provider.MediaStore;
+import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
 import android.widget.*;
 import androidx.core.content.FileProvider;
+import androidx.core.view.ViewCompat;
 import com.google.mlkit.vision.common.InputImage;
 import com.google.mlkit.vision.face.Face;
 import com.google.mlkit.vision.face.FaceDetection;
@@ -49,10 +52,103 @@ public final class MainActivity extends Activity {
  private Uri savedGalleryImage;
  private TextView exportStatus;
  private Button openGallery,shareGallery;
+ private Button importPhoto,advance,more;
+ private LinearLayout cropTools,guideTools;
+ private Button cropTab,guideTab;
+ private boolean guideSelected;
+ private int toolbarStage=-1;
  private int dp(int n){return Math.round(n*getResources().getDisplayMetrics().density);}
  private TextView label(String s,int size){TextView t=ui.text(s,size,size>=18);content.addView(t,ui.space(-2,0,2));return t;}
  private Button button(String s,Runnable r){Button b=new Button(this);b.setText(s);ui.button(b,false);b.setOnClickListener(v->r.run());content.addView(b,ui.space(-2,3,4));return b;}
- private void showStage(int next){if(next!=0&&source==null)next=0;stage=next;sourcePanel.setVisibility(stage==0?View.VISIBLE:View.GONE);previewPanel.setVisibility(stage==1?View.VISIBLE:View.GONE);editPanel.setVisibility(stage==1?View.VISIBLE:View.GONE);exportPanel.setVisibility(stage==2?View.VISIBLE:View.GONE);for(int i=0;i<3;i++){ui.button(steps[i],i==stage);steps[i].setSelected(i==stage);steps[i].setEnabled(i==0||source!=null);}if(printPreview!=null)printPreview.invalidate();screen.post(()->screen.scrollTo(0,0));}
+ private void showStage(int next){
+  if(next!=0&&source==null)next=0;
+  boolean changed=stage!=next;
+  stage=next;
+  sourcePanel.setVisibility(stage==0?View.VISIBLE:View.GONE);
+  previewPanel.setVisibility(stage==1?View.VISIBLE:View.GONE);
+  editPanel.setVisibility(stage==1?View.VISIBLE:View.GONE);
+  exportPanel.setVisibility(stage==2?View.VISIBLE:View.GONE);
+  refreshWorkflowActions();
+  if(printPreview!=null)printPreview.invalidate();
+  if(changed){
+   screen.scrollTo(0,0);
+   screen.post(()->screen.scrollTo(0,0));
+   page.animate().cancel();
+   page.setAlpha(1f);
+   if(ValueAnimator.areAnimatorsEnabled()){
+    page.setAlpha(.78f);
+    page.animate().alpha(1f).setDuration(160).start();
+   }
+  }
+ }
+
+ private void refreshWorkflowActions(){
+  if(toolbarStage!=stage){
+   for(int i=0;i<steps.length;i++){
+    ui.button(steps[i],i==stage);
+    steps[i].setSelected(i==stage);
+   }
+   toolbarStage=stage;
+  }
+  for(int i=0;i<steps.length;i++)steps[i].setEnabled(i==0||source!=null);
+  importPhoto.setVisibility(stage==0?View.VISIBLE:View.GONE);
+  advance.setVisibility(stage==1?View.VISIBLE:View.GONE);
+  jpg.setVisibility(stage==2?View.VISIBLE:View.GONE);
+  importPhoto.setEnabled(!exportBlocked());
+  advance.setEnabled(!exportBlocked());
+ }
+
+ private void showGuideTools(boolean guides){
+  guideSelected=guides;
+  cropTools.setVisibility(guides?View.GONE:View.VISIBLE);
+  guideTools.setVisibility(guides?View.VISIBLE:View.GONE);
+  cropTab.setSelected(!guides);
+  guideTab.setSelected(guides);
+  ui.button(cropTab,!guides);
+  ui.button(guideTab,guides);
+  advance.setText(guides?R.string.stage_save:R.string.studio_guides);
+ }
+
+ private LinearLayout rail(){
+  LinearLayout row=new LinearLayout(this);
+  row.setGravity(Gravity.CENTER_VERTICAL);
+  return row;
+ }
+
+ private Button railButton(LinearLayout row,CharSequence title,Runnable action){
+  Button b=new Button(this);
+  b.setText(title);
+  b.setOnClickListener(v->action.run());
+  ui.button(b,false);
+  LinearLayout.LayoutParams params=new LinearLayout.LayoutParams(0,-2,1);
+  params.setMargins(dp(2),0,dp(2),0);
+  row.addView(b,params);
+  return b;
+ }
+
+ private void showMenu(){
+  PopupMenu menu=new PopupMenu(this,more);
+  menu.getMenu().add(0,1,0,R.string.pk_029).setEnabled(source!=null&&!exportBlocked());
+  menu.getMenu().add(0,2,1,R.string.studio_references);
+  menu.getMenu().add(0,3,2,R.string.pk_030);
+  menu.setOnMenuItemClickListener(item->{
+   switch(item.getItemId()){
+    case 1: clear(); return true;
+    case 2:
+     new android.app.AlertDialog.Builder(this).setTitle(R.string.studio_references)
+      .setMessage(getString(R.string.pk_032)+"\n\nhttps://www.passport.go.kr/home/kor/contents.do?menuPos=32\nhttps://www.passport.go.kr/home/kor/contents.do?menuPos=12")
+      .setPositiveButton(android.R.string.ok,null).show();
+     return true;
+    case 3:
+     new android.app.AlertDialog.Builder(this).setTitle(R.string.pk_030)
+      .setMessage(R.string.pk_031).setPositiveButton(android.R.string.ok,null).show();
+     return true;
+    default: return false;
+   }
+  });
+  menu.show();
+ }
+
  private SeekBar slider(String s,int max,int value,boolean crop){label(s,15);SeekBar bar=new SeekBar(this);bar.setMax(max);bar.setProgress(value);bar.setContentDescription(s);bar.setProgressTintList(android.content.res.ColorStateList.valueOf(ui.accent));bar.setThumbTintList(android.content.res.ColorStateList.valueOf(ui.accent));content.addView(bar,new LinearLayout.LayoutParams(-1,dp(52)));bar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener(){
   public void onStartTrackingTouch(SeekBar b){}
   public void onStopTrackingTouch(SeekBar b){}
@@ -68,44 +164,158 @@ public final class MainActivity extends Activity {
   File dir=new File(getCacheDir(),"capture");dir.mkdirs();
   if(saved!=null){String n=saved.getString("capture");if(n!=null&&n.matches("photo-[a-zA-Z0-9]+\\.jpg"))pendingCamera=new File(dir,n);}
   File[] stale=dir.listFiles();if(stale!=null)for(File f:stale)if(!f.equals(pendingCamera))f.delete();
-  ui=new KitUi(this,0xff3155b7,0xffa9bfff);
+  ui=new KitUi(this,0xff274c90,0xffaec8ff);
+  LinearLayout root=new LinearLayout(this);
+  root.setOrientation(LinearLayout.VERTICAL);
+  root.setGravity(Gravity.CENTER_HORIZONTAL);
+  root.setBackgroundColor(ui.background);
+  LinearLayout header=ui.column();
+  header.setPadding(dp(18),dp(4),dp(18),dp(2));
+  header.setBackgroundColor(ui.surface);
+  root.addView(header,new LinearLayout.LayoutParams(-1,-2));
+  LinearLayout identity=rail();
+  header.addView(identity,new LinearLayout.LayoutParams(-1,-2));
+  ImageView icon=new ImageView(this);
+  icon.setImageResource(R.drawable.ic_launcher);
+  icon.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+  identity.addView(icon,new LinearLayout.LayoutParams(dp(32),dp(32)));
+  TextView title=ui.text(getString(R.string.app_name),21,true);
+  ViewCompat.setAccessibilityHeading(title,true);
+  LinearLayout.LayoutParams titleParams=new LinearLayout.LayoutParams(0,-2,1);
+  titleParams.setMarginStart(dp(10));
+  identity.addView(title,titleParams);
+  more=new Button(this);
+  more.setText("⋯");
+  more.setContentDescription(getString(R.string.studio_more));
+  ui.button(more,false);
+  more.setMinWidth(dp(48));
+  more.setMinimumWidth(dp(48));
+  more.setOnClickListener(v->showMenu());
+  identity.addView(more,new LinearLayout.LayoutParams(dp(52),-2));
+
+  LinearLayout navigation=rail();
+  steps=new Button[3];
+  int[] stepIds={R.string.stage_source,R.string.stage_edit,R.string.stage_save};
+  for(int i=0;i<steps.length;i++){
+   final int step=i;
+   steps[i]=railButton(navigation,getString(R.string.studio_step,i+1,getString(stepIds[i])),()->showStage(step));
+  }
+  header.addView(navigation,ui.space(-2,4,6));
+  status=ui.text("",14,false);
+  status.setAccessibilityLiveRegion(View.ACCESSIBILITY_LIVE_REGION_POLITE);
+  status.setVisibility(View.GONE);
+  header.addView(status,ui.space(-2,0,2));
   ScrollView scroll=new ScrollView(this);screen=scroll;scroll.setFillViewport(true);scroll.setBackgroundColor(ui.background);
   page=ui.column();android.widget.FrameLayout frame=new android.widget.FrameLayout(this);frame.addView(page,new android.widget.FrameLayout.LayoutParams(-1,-2,android.view.Gravity.TOP|android.view.Gravity.CENTER_HORIZONTAL));scroll.addView(frame,new ViewGroup.LayoutParams(-1,-2));content=page;
-  label("PassportKit",32);label(getString(R.string.pk_001),16);
-  LinearLayout navigation=new LinearLayout(this);navigation.setOrientation(LinearLayout.HORIZONTAL);steps=new Button[3];int[] stepIds={R.string.stage_source,R.string.stage_edit,R.string.stage_save};
-  for(int i=0;i<3;i++){final int step=i;Button b=new Button(this);b.setText(getString(stepIds[i]));ui.button(b,i==0);b.setOnClickListener(v->showStage(step));LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(0,-2,1);lp.setMargins(dp(2),0,dp(2),0);navigation.addView(b,lp);steps[i]=b;}page.addView(navigation,ui.space(-2,4,8));
-  status=label(getString(R.string.pk_011),15);status.setAccessibilityLiveRegion(View.ACCESSIBILITY_LIVE_REGION_POLITE);
-  sourcePanel=ui.card(page);content=sourcePanel;
-  label(getString(R.string.pk_002),22);
-  profileSelect=new Spinner(this);profileSelect.setContentDescription(getString(R.string.pk_002));profileSelect.setAdapter(new ArrayAdapter<>(this,android.R.layout.simple_spinner_dropdown_item,new String[]{getString(R.string.pk_003),getString(R.string.pk_004),getString(R.string.pk_005),getString(R.string.pk_006)}));ui.field(profileSelect);content.addView(profileSelect,ui.space(dp(56),4,4));ruleNote=label("",14);
-  View intro=new View(this){final Paint p=new Paint(Paint.ANTI_ALIAS_FLAG);@Override protected void onDraw(Canvas c){float w=getWidth(),h=getHeight();p.setColor(ui.tint);c.drawRect(0,0,w,h,p);float x=w/2,y=h/2,r=Math.min(w,h)*.35f;p.setColor(ui.accent);c.drawRoundRect(x-r*1.2f,y-r*.8f,x+r*.25f,y+r*.9f,dp(8),dp(8),p);p.setColor(ui.surface);c.drawRoundRect(x-r*.25f,y-r*.65f,x+r*1.3f,y+r*.65f,dp(9),dp(9),p);p.setColor(ui.accent);c.drawCircle(x+r*.18f,y-r*.19f,r*.19f,p);c.drawRoundRect(x-r*.09f,y+r*.06f,x+r*.46f,y+r*.42f,dp(5),dp(5),p);p.setStrokeWidth(dp(2));c.drawLine(x+r*.60f,y-r*.15f,x+r*1.04f,y-r*.15f,p);c.drawLine(x+r*.60f,y+r*.12f,x+r*1.04f,y+r*.12f,p);}};
-  ui.preview(intro);content.addView(intro,ui.space(dp(136),6,8));label(getString(R.string.pk_007),14);
-  ui.button(button(getString(R.string.pk_008),this::pick),true);button(getString(R.string.pk_010),this::guided);button(getString(R.string.pk_009),this::camera);
-  previewPanel=ui.card(page);content=previewPanel;preview=new Preview();preview.setContentDescription(getString(R.string.pk_012));ui.preview(preview);content.addView(preview,ui.space(dp(330),0,0));
-  editPanel=ui.card(page);content=editPanel;label(getString(R.string.pk_013),20);
-  zoom=slider(getString(R.string.pk_014),100,0,true);x=slider(getString(R.string.pk_015),100,50,true);y=slider(getString(R.string.pk_016),100,50,true);
-  label(getString(R.string.pk_017),20);headTop=slider(getString(R.string.pk_018),100,10,false);headBottom=slider(getString(R.string.pk_019),100,85,false);
-  measure=label("",16);confirmed=new CheckBox(this);confirmed.setText(getString(R.string.pk_020));confirmed.setMinHeight(dp(52));confirmed.setOnCheckedChangeListener((b,v)->updateMeasurement());content.addView(confirmed);
-  check=button(getString(R.string.pk_021),this::inspect);quality=label("",15);
-  background=button(getString(R.string.pk_022),this::chooseBackground);resetBackground=button(getString(R.string.pk_023),()->{backgroundColor=0;updateCrop();});
-  ui.button(button(getString(R.string.stage_save),()->showStage(2)),true);
-  exportPanel=ui.card(page);content=exportPanel;label(getString(R.string.pk_024),22);
-  label(getString(R.string.stage_save_hint),15);printPreview=new PrintPreview();printPreview.setContentDescription(getString(R.string.stage_paper_preview));ui.preview(printPreview);content.addView(printPreview,ui.space(dp(300),4,8));
-  jpg=button(getString(R.string.pk_025),()->export(SAVE_JPG));ui.button(jpg,true);
-  label(getString(R.string.pk_026),15);paper=new Spinner(this);paper.setContentDescription(getString(R.string.pk_026));ArrayAdapter<String> adapter=new ArrayAdapter<>(this,android.R.layout.simple_spinner_dropdown_item,new String[]{"4 × 6 in","5 × 7 in","A4"});paper.setAdapter(adapter);ui.field(paper);content.addView(paper,ui.space(dp(52),4,6));paper.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener(){public void onNothingSelected(AdapterView<?> p){}public void onItemSelected(AdapterView<?> p,View v,int i,long id){printPreview.invalidate();}});
-  sheet=button(getString(R.string.pk_028),()->export(SAVE_SHEET));
-  pdf=button(getString(R.string.pk_027),()->export(SAVE_PDF));
+  root.addView(scroll,new LinearLayout.LayoutParams(-1,0,1));
+  sourcePanel=new LinearLayout(this);
+  sourcePanel.setOrientation(LinearLayout.VERTICAL);
+  page.addView(sourcePanel,new LinearLayout.LayoutParams(-1,-2));
+  content=sourcePanel;
+  ViewCompat.setAccessibilityHeading(label(getString(R.string.pk_001),24),true);
+  View intro=new PassportArtwork();
+  ui.preview(intro);
+  intro.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+  content.addView(intro,ui.space(dp(208),6,12));
+  content=ui.card(sourcePanel);
+  ViewCompat.setAccessibilityHeading(label(getString(R.string.pk_002),18),true);
+  profileSelect=new Spinner(this);
+  profileSelect.setContentDescription(getString(R.string.pk_002));
+  profileSelect.setAdapter(new ArrayAdapter<>(this,android.R.layout.simple_spinner_dropdown_item,new String[]{
+   getString(R.string.pk_003),getString(R.string.pk_004),getString(R.string.pk_005),getString(R.string.pk_006)}));
+  ui.field(profileSelect);
+  content.addView(profileSelect,ui.space(dp(56),4,4));
+  ruleNote=label("",14);
+  content=sourcePanel;
+  label(getString(R.string.pk_007),14);
+  button(getString(R.string.pk_010),this::guided);
+  button(getString(R.string.pk_009),this::camera);
+
+  previewPanel=new LinearLayout(this);
+  previewPanel.setOrientation(LinearLayout.VERTICAL);
+  page.addView(previewPanel,ui.space(-2,0,6));
+  content=previewPanel;
+  preview=new Preview();
+  preview.setContentDescription(getString(R.string.pk_012));
+  ui.preview(preview);
+  content.addView(preview,ui.space(dp(280),0,0));
+
+  editPanel=new LinearLayout(this);
+  editPanel.setOrientation(LinearLayout.VERTICAL);
+  page.addView(editPanel,ui.space(-2,0,0));
+  LinearLayout inspector=rail();
+  editPanel.addView(inspector,ui.space(-2,4,6));
+  cropTab=railButton(inspector,getString(R.string.studio_crop),()->showGuideTools(false));
+  guideTab=railButton(inspector,getString(R.string.studio_guides),()->showGuideTools(true));
+
+  cropTools=ui.card(editPanel);
+  content=cropTools;
+  ViewCompat.setAccessibilityHeading(label(getString(R.string.pk_013),20),true);
+  zoom=slider(getString(R.string.pk_014),100,0,true);
+  x=slider(getString(R.string.pk_015),100,50,true);
+  y=slider(getString(R.string.pk_016),100,50,true);
+  background=button(getString(R.string.pk_022),this::chooseBackground);
+  resetBackground=button(getString(R.string.pk_023),()->{backgroundColor=0;updateCrop();});
+
+  guideTools=ui.card(editPanel);
+  content=guideTools;
+  ViewCompat.setAccessibilityHeading(label(getString(R.string.pk_017),20),true);
+  headTop=slider(getString(R.string.pk_018),100,10,false);
+  headBottom=slider(getString(R.string.pk_019),100,85,false);
+  measure=label("",16);
+  measure.setAccessibilityLiveRegion(View.ACCESSIBILITY_LIVE_REGION_POLITE);
+  confirmed=new CheckBox(this);
+  confirmed.setText(getString(R.string.pk_020));
+  confirmed.setMinHeight(dp(52));
+  confirmed.setOnCheckedChangeListener((b,v)->updateMeasurement());
+  content.addView(confirmed);
+  check=button(getString(R.string.pk_021),this::inspect);
+  quality=label("",15);
+  quality.setAccessibilityLiveRegion(View.ACCESSIBILITY_LIVE_REGION_POLITE);
+
+  exportPanel=new LinearLayout(this);
+  exportPanel.setOrientation(LinearLayout.VERTICAL);
+  page.addView(exportPanel,ui.space(-2,0,0));
+  content=exportPanel;
+  ViewCompat.setAccessibilityHeading(label(getString(R.string.pk_024),24),true);
+  label(getString(R.string.stage_save_hint),15);
   exportStatus=label("",15);
   exportStatus.setAccessibilityLiveRegion(View.ACCESSIBILITY_LIVE_REGION_POLITE);
   openGallery=button(getString(R.string.gallery_open),()->openSavedImage(false));
   shareGallery=button(getString(R.string.gallery_share),()->openSavedImage(true));
   refreshGalleryActions();
-  button(getString(R.string.stage_edit),()->showStage(1));label(getString(R.string.pk_033),14);
-  content=page;button(getString(R.string.pk_029),this::clear);button(getString(R.string.pk_030),()->new android.app.AlertDialog.Builder(this).setTitle("PassportKit Pro").setMessage(getString(R.string.pk_031)).setPositiveButton(android.R.string.ok,null).show());
-  label(getString(R.string.pk_032),14);label("https://www.passport.go.kr/home/kor/contents.do?menuPos=32\nhttps://www.passport.go.kr/home/kor/contents.do?menuPos=12",12);
+
+  content=ui.card(exportPanel);
+  ViewCompat.setAccessibilityHeading(label(getString(R.string.studio_print),18),true);
+  printPreview=new PrintPreview();
+  label(getString(R.string.pk_026),15);paper=new Spinner(this);paper.setContentDescription(getString(R.string.pk_026));ArrayAdapter<String> adapter=new ArrayAdapter<>(this,android.R.layout.simple_spinner_dropdown_item,new String[]{"4 × 6 in","5 × 7 in","A4"});paper.setAdapter(adapter);ui.field(paper);content.addView(paper,ui.space(dp(52),4,6));paper.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener(){public void onNothingSelected(AdapterView<?> p){}public void onItemSelected(AdapterView<?> p,View v,int i,long id){printPreview.invalidate();}});
+  printPreview.setContentDescription(getString(R.string.stage_paper_preview));
+  ui.preview(printPreview);
+  content.addView(printPreview,ui.space(dp(260),6,8));
+  sheet=button(getString(R.string.pk_028),()->export(SAVE_SHEET));
+  pdf=button(getString(R.string.pk_027),()->export(SAVE_PDF));
+  label(getString(R.string.pk_033),14);
+
+  LinearLayout footer=ui.column();
+  footer.setPadding(dp(18),dp(3),dp(18),dp(5));
+  footer.setBackgroundColor(ui.surface);
+  root.addView(footer,new LinearLayout.LayoutParams(-1,-2));
+  content=footer;
+  importPhoto=button(getString(R.string.pk_008),this::pick);
+  advance=button(getString(R.string.studio_guides),()->{
+   if(guideSelected)showStage(2);
+   else showGuideTools(true);
+  });
+  jpg=button(getString(R.string.pk_025),()->export(SAVE_JPG));
+  ui.button(importPhoto,true);
+  ui.button(advance,true);
+  ui.button(jpg,true);
+  showGuideTools(false);
   showStage(0);
   if(holdSplash)holdSplashUntil(scroll,startedAt+SPLASH_MIN_MS);
-  setContentView(scroll);SystemInsets.apply(this,scroll);profileSelect.setOnItemSelectedListener(new android.widget.AdapterView.OnItemSelectedListener(){public void onNothingSelected(android.widget.AdapterView<?> p){}public void onItemSelected(android.widget.AdapterView<?> p,View v,int i,long id){profile=PhotoRules.Profile.values()[i];backgroundColor=0;confirmed.setChecked(false);updateProfile();if(source!=null)updateCrop();else updateMeasurement();}});updateProfile();updateMeasurement();
+  setContentView(root);
+  SystemInsets.apply(this,root);
+  profileSelect.setOnItemSelectedListener(new android.widget.AdapterView.OnItemSelectedListener(){public void onNothingSelected(android.widget.AdapterView<?> p){}public void onItemSelected(android.widget.AdapterView<?> p,View v,int i,long id){profile=PhotoRules.Profile.values()[i];backgroundColor=0;confirmed.setChecked(false);updateProfile();if(source!=null)updateCrop();else updateMeasurement();}});updateProfile();updateMeasurement();
  }
  private void holdSplashUntil(View view,long deadline){
   splashGateView=view;
@@ -180,13 +390,16 @@ public final class MainActivity extends Activity {
    finishExport(result,null);
   });
  }
- private void message(String s){status.setText(s);}
+ private void message(String s){
+  status.setText(s);
+  status.setVisibility(s.isEmpty()?View.GONE:View.VISIBLE);
+ }
  private void load(Uri uri,boolean capture){if(busy)return;busy=true;generation++;updateMeasurement();message(getString(R.string.pk_042));
   worker.execute(()->{Bitmap b=null;try{b=decode(uri);}catch(Exception|OutOfMemoryError ignored){}Bitmap decoded=b;runOnUiThread(()->{
    if(capture)removeCapture();if(closed){if(decoded!=null)decoded.recycle();return;}busy=false;
    if(decoded==null){message(getString(R.string.pk_043));updateMeasurement();return;}
    savedGalleryImage=null;refreshGalleryActions();exportStatus.setText("");
-   if(source!=null)source.recycle();source=decoded;backgroundColor=0;updating=true;zoom.setProgress(0);x.setProgress(50);y.setProgress(50);headTop.setProgress(10);headBottom.setProgress(85);confirmed.setChecked(false);updating=false;updateCrop();message(getString(R.string.pk_044));showStage(1);
+   if(source!=null)source.recycle();source=decoded;backgroundColor=0;updating=true;zoom.setProgress(0);x.setProgress(50);y.setProgress(50);headTop.setProgress(10);headBottom.setProgress(85);confirmed.setChecked(false);updating=false;updateCrop();message(getString(R.string.pk_044));showGuideTools(false);showStage(1);
   });});
  }
  private InputStream input(Uri uri)throws IOException{InputStream in=getContentResolver().openInputStream(uri);if(in==null)throw new IOException();return in;}
@@ -211,7 +424,7 @@ public final class MainActivity extends Activity {
   if(exportBlocked())exportStatus.setText(R.string.export_in_progress);
   else if(!ready)exportStatus.setText(R.string.export_disabled);
   else if(exportStatus.getText().toString().equals(getString(R.string.export_in_progress))||
-    exportStatus.getText().toString().equals(getString(R.string.export_disabled)))exportStatus.setText("");check.setEnabled(source!=null&&!busy);jpg.setEnabled(ready);pdf.setEnabled(ready);sheet.setEnabled(ready);background.setEnabled(source!=null&&!busy);resetBackground.setEnabled(source!=null&&!busy);preview.invalidate();if(printPreview!=null)printPreview.invalidate();
+    exportStatus.getText().toString().equals(getString(R.string.export_disabled)))exportStatus.setText("");check.setEnabled(source!=null&&!busy);jpg.setEnabled(ready);pdf.setEnabled(ready);sheet.setEnabled(ready);background.setEnabled(source!=null&&!busy);resetBackground.setEnabled(source!=null&&!busy);refreshWorkflowActions();preview.invalidate();if(printPreview!=null)printPreview.invalidate();
  }
  private void inspect(){if(cropped==null||busy)return;int ticket=++generation;busy=true;updateMeasurement();quality.setText(getString(R.string.pk_058));
   Bitmap snapshot=cropped.copy(Bitmap.Config.ARGB_8888,false);String hint=qualityHint(snapshot);
@@ -330,6 +543,62 @@ public final class MainActivity extends Activity {
  private static byte[] makeSheet(Bitmap image,PhotoRules.Profile profile,int pos)throws IOException{int w=pos==0?1200:pos==1?1500:2480,h=pos==0?1800:pos==1?2100:3508;int pw=PhotoRules.pixels(profile.mmW),ph=PhotoRules.pixels(profile.mmH),gap=PhotoRules.pixels(3),margin=PhotoRules.pixels(4),cols=(w-2*margin+gap)/(pw+gap),rows=(h-2*margin+gap)/(ph+gap);Bitmap bitmap=Bitmap.createBitmap(w,h,Bitmap.Config.ARGB_8888);try{Canvas c=new Canvas(bitmap);c.drawColor(Color.WHITE);int left=(w-cols*pw-(cols-1)*gap)/2,top=(h-rows*ph-(rows-1)*gap)/2;Paint p=new Paint(Paint.FILTER_BITMAP_FLAG);for(int y=0;y<rows;y++)for(int x=0;x<cols;x++){int xx=left+x*(pw+gap),yy=top+y*(ph+gap);c.drawBitmap(image,null,new Rect(xx,yy,xx+pw,yy+ph),p);}ByteArrayOutputStream out=new ByteArrayOutputStream();if(!bitmap.compress(Bitmap.CompressFormat.JPEG,95,out))throw new IOException();return out.toByteArray();}finally{bitmap.recycle();}}
  private void clear(){if(exportBlocked())return;generation++;if(source!=null){source.recycle();source=null;}if(cropped!=null){cropped.recycle();cropped=null;}savedGalleryImage=null;refreshGalleryActions();confirmed.setChecked(false);quality.setText("");message(getString(R.string.pk_072));updateMeasurement();showStage(0);}
  @Override protected void onDestroy(){releaseSplashGate();closed=true;generation++;worker.shutdown();if(detector!=null)detector.close();if(source!=null)source.recycle();if(cropped!=null)cropped.recycle();pendingExport=null;if(isFinishing())removeCapture();super.onDestroy();}
+ private final class PassportArtwork extends View {
+  private final Paint paint=new Paint(Paint.ANTI_ALIAS_FLAG);
+  PassportArtwork(){super(MainActivity.this);}
+
+  @Override protected void onDraw(Canvas canvas){
+   float width=getWidth(),height=getHeight(),scale=Math.min(width/320f,height/207f);
+   if(scale<=0)return;
+   canvas.drawColor(ui.tint);
+   canvas.save();
+   canvas.translate(width/2,height/2);
+   canvas.scale(scale,scale);
+
+   paint.setColor(ui.outline);
+   for(int column=-7;column<=7;column++){
+    for(int row=-4;row<=4;row++)canvas.drawCircle(column*20,row*20,1.1f,paint);
+   }
+   canvas.save();
+   canvas.rotate(-12,-37,0);
+   paint.setColor(0xff172c53);
+   canvas.drawRoundRect(-101,-66,26,70,11,11,paint);
+   paint.setColor(0xffc8a572);
+   paint.setStyle(Paint.Style.STROKE);
+   paint.setStrokeWidth(1.6f);
+   canvas.drawRoundRect(-93,-58,18,62,8,8,paint);
+   canvas.drawCircle(-38,-5,20,paint);
+   canvas.drawOval(-48,-25,-28,15,paint);
+   canvas.drawLine(-58,-5,-18,-5,paint);
+   canvas.drawLine(-59,38,-17,38,paint);
+   paint.setStyle(Paint.Style.FILL);
+   canvas.restore();
+
+   canvas.save();
+   canvas.rotate(8,65,0);
+   paint.setColor(0x260f1b34);
+   canvas.drawRoundRect(14,-56,116,75,10,10,paint);
+   paint.setColor(ui.surface);
+   canvas.drawRoundRect(8,-61,110,68,10,10,paint);
+   paint.setColor(ui.tint);
+   canvas.drawRoundRect(18,-51,100,46,7,7,paint);
+   paint.setColor(ui.accent);
+   canvas.drawCircle(59,-15,14,paint);
+   canvas.drawRoundRect(35,7,83,38,14,14,paint);
+   paint.setStrokeWidth(2f);
+   for(int x=25;x<=93;x+=68){
+    for(int y=-44;y<=39;y+=83){
+     canvas.drawLine(x,y,x+(x==25?9:-9),y,paint);
+     canvas.drawLine(x,y,x,y+(y==-44?9:-9),paint);
+    }
+   }
+   paint.setColor(ui.outline);
+   canvas.drawRoundRect(31,54,87,58,2,2,paint);
+   canvas.restore();
+   canvas.restore();
+  }
+ }
+
  private final class PrintPreview extends View{
   private final Paint p=new Paint(Paint.ANTI_ALIAS_FLAG|Paint.FILTER_BITMAP_FLAG);
   PrintPreview(){super(MainActivity.this);}

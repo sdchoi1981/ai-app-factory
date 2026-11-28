@@ -353,7 +353,8 @@
       "status": "testing",
       "supportedLanguages": [
         "ko",
-        "en"
+        "en",
+        "ja"
       ],
       "monetization": {
         "ads": false,

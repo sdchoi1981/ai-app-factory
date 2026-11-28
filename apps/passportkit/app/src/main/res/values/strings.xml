@@ -91,4 +91,10 @@
     <string name="export_in_progress">Saving…</string>
     <string name="export_disabled">To save, add a photo, check its size and crop, and confirm the head guides in Edit.</string>
     <string name="gallery_save_failed">Could not save the JPG to the gallery.</string>
+    <string name="studio_more">More options</string>
+    <string name="studio_references">Official photo references</string>
+    <string name="studio_step">%1$d · %2$s</string>
+    <string name="studio_crop">Crop</string>
+    <string name="studio_guides">Head guides</string>
+    <string name="studio_print">Print layout</string>
 </resources>

@@ -91,4 +91,10 @@
     <string name="export_in_progress">저장 중…</string>
     <string name="export_disabled">저장하려면 사진을 추가하고, 크기와 자르기 영역을 확인한 뒤 편집에서 머리 가이드를 확인해 주세요.</string>
     <string name="gallery_save_failed">JPG를 갤러리에 저장할 수 없어요.</string>
+    <string name="studio_more">추가 옵션</string>
+    <string name="studio_references">공식 사진 안내</string>
+    <string name="studio_step">%1$d · %2$s</string>
+    <string name="studio_crop">자르기</string>
+    <string name="studio_guides">머리 길이 안내선</string>
+    <string name="studio_print">인쇄 배치</string>
 </resources>
