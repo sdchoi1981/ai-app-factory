@@ -1,54 +1,381 @@
 package factory.kit;
-import android.app.*;import android.os.*;import android.content.*;import android.graphics.*;import android.graphics.pdf.*;import android.net.Uri;import android.view.*;import android.widget.*;import android.hardware.*;import android.provider.DocumentsContract;import java.io.*;import java.util.*;import java.util.concurrent.*;import java.util.zip.*;import java.security.*;
+
+import android.app.Activity;
+import android.content.ActivityNotFoundException;
+import android.content.Intent;
+import android.graphics.Bitmap;
+import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.ImageDecoder;
+import android.graphics.Paint;
+import android.graphics.RectF;
+import android.net.Uri;
+import android.os.Bundle;
+import android.provider.DocumentsContract;
+import android.view.Gravity;
+import android.view.MotionEvent;
+import android.view.View;
+import android.view.WindowManager;
+import android.widget.Button;
+import android.widget.FrameLayout;
+import android.widget.LinearLayout;
+import android.widget.ScrollView;
+import android.widget.TextView;
+import factory.ui.KitUi;
+import factory.ui.SystemInsets;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.util.ArrayList;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
 public final class MainActivity extends Activity {
+    private static final int PICK = 1;
+    private static final int SAVE = 2;
+    private static final int MAX_SIDE = 2048;
+    private static final int MAX_MARKS = 100;
+    private final ExecutorService worker = Executors.newSingleThreadExecutor();
+    private final ArrayList<RectF> marks = new ArrayList<>();
+    private KitUi ui;
+    private MaskView preview;
+    private TextView status;
+    private TextView markCount;
+    private Button pickButton;
+    private Button undoButton;
+    private Button saveButton;
+    private Bitmap current;
+    private File pendingOutput;
+    private boolean busy;
+    private boolean closed;
 
-    private static final int PICK=1,SAVE=2,CAMERA=3;
-    private final ArrayList<Uri> selected=new ArrayList<>();
-    private final ExecutorService worker=Executors.newSingleThreadExecutor();
-    private LinearLayout root; private TextView status; private Button pickButton,runButton;
-    private boolean busy=false,closed=false; private File output,capture; private Uri captureUri;
-    private String outputMime,outputName;
-    private String t(String en,String ko,String ja){String lang=getResources().getConfiguration().getLocales().get(0).getLanguage();return "ko".equals(lang)?ko:"ja".equals(lang)?ja:en;}
-    private int dp(float x){return (int)(x*getResources().getDisplayMetrics().density+0.5f);}
-    private void setup(String intro){
-        ScrollView scroll=new ScrollView(this); root=new LinearLayout(this);root.setOrientation(LinearLayout.VERTICAL);
-        root.setPadding(dp(20),dp(18),dp(20),dp(28));scroll.setFillViewport(true);scroll.addView(root);setContentView(scroll);
-        scroll.setOnApplyWindowInsetsListener((v,insets)->{android.graphics.Insets i=insets.getInsets(android.view.WindowInsets.Type.systemBars()|android.view.WindowInsets.Type.displayCutout());v.setPadding(i.left,i.top,i.right,i.bottom);return insets;});
-        TextView title=new TextView(this);title.setText(getString(R.string.app_name));title.setTextSize(30);title.setTypeface(null,android.graphics.Typeface.BOLD);root.addView(title);
-        label(intro); status=label(t("Ready","준비 완료","準備完了"));status.setAccessibilityLiveRegion(View.ACCESSIBILITY_LIVE_REGION_POLITE);
+    private String t(String en,String ko,String ja) {
+        String lang = getResources().getConfiguration().getLocales().get(0).getLanguage();
+        return "ko".equals(lang) ? ko : "ja".equals(lang) ? ja : en;
     }
-    private TextView label(String s){TextView v=new TextView(this);v.setText(s);v.setTextSize(16);v.setPadding(0,dp(8),0,dp(8));root.addView(v);return v;}
-    private Button button(String s,Runnable action){Button b=new Button(this);b.setText(s);b.setMinHeight(dp(48));b.setAllCaps(false);b.setOnClickListener(v->action.run());root.addView(b);return b;}
-    private EditText number(String name,String value){label(name);EditText e=new EditText(this);e.setContentDescription(name);e.setInputType(android.text.InputType.TYPE_CLASS_NUMBER);e.setText(value);e.setSingleLine(true);root.addView(e);return e;}
-    private int parse(EditText e,int min,int max){int n=Integer.parseInt(e.getText().toString());if(n<min||n>max)throw new IllegalArgumentException("range "+min+"–"+max);return n;}
-    private Spinner options(String name,String... items){label(name);Spinner s=new Spinner(this);s.setContentDescription(name);ArrayAdapter<String> a=new ArrayAdapter<>(this,android.R.layout.simple_spinner_dropdown_item,items);s.setAdapter(a);root.addView(s);return s;}
-    private void pick(String mime,boolean multiple){if(busy)return;Intent i=new Intent(Intent.ACTION_OPEN_DOCUMENT);i.setType(mime);i.addCategory(Intent.CATEGORY_OPENABLE);i.putExtra(Intent.EXTRA_ALLOW_MULTIPLE,multiple);try{startActivityForResult(i,PICK);}catch(ActivityNotFoundException e){status.setText(t("No file picker","파일 선택기 없음","ファイル選択不可"));}}
-    private void selectedChanged(){status.setText(t("Selected: ","선택: ","選択: ")+selected.size());}
-    @Override protected void onActivityResult(int req,int result,Intent data){super.onActivityResult(req,result,data);
-        if(req==PICK&&result==RESULT_OK&&data!=null){selected.clear();if(data.getClipData()!=null){ClipData clip=data.getClipData();for(int n=0;n<Math.min(clip.getItemCount(),20);n++){Uri u=clip.getItemAt(n).getUri();if(u!=null&&!selected.contains(u))selected.add(u);}}else if(data.getData()!=null)selected.add(data.getData());selectedChanged();onPicked();}
-        if(req==SAVE){if(result==RESULT_OK&&data!=null&&data.getData()!=null&&output!=null){final Uri dest=data.getData();final File source=output;busy=true;worker.execute(()->{try(InputStream in=new FileInputStream(source);OutputStream out=getContentResolver().openOutputStream(dest,"wt")){if(out==null)throw new IOException("output");copy(in,out);post(t("Saved successfully","저장 완료","保存完了"));}catch(Exception e){post(t("Save failed","저장 실패","保存失敗"));}finally{source.delete();runOnUiThread(()->{output=null;busy=false;});}});}else{if(output!=null)output.delete();output=null;busy=false;}}
-        if(req==CAMERA)cameraResult(result);
-    }
-    protected void cameraResult(int result){}
-    private void post(String message){runOnUiThread(()->{if(!closed)status.setText(message);});}
-    private void copy(InputStream in,OutputStream out)throws IOException{byte[] buf=new byte[32768];for(int n;(n=in.read(buf))!=-1;){out.write(buf,0,n);if(Thread.currentThread().isInterrupted())throw new InterruptedIOException();}}
-    private ArrayList<Uri> inputs(){if(selected.isEmpty())throw new IllegalArgumentException(t("Select files first","파일을 먼저 선택하세요","ファイルを選択してください"));return new ArrayList<>(selected);}
-    private void fail(Exception e){status.setText(t("Check selection or numeric limits: ","선택 및 입력 범위를 확인하세요: ","選択・入力範囲を確認: ")+(e instanceof IllegalArgumentException?e.getMessage():""));}
-    interface Producer{void write(File file)throws Exception;}
-    private void export(String mime,String name,Producer task){if(busy)return;busy=true;status.setText(t("Processing…","처리 중…","処理中…"));worker.execute(()->{File f=null;try{f=File.createTempFile("kit-export-",".tmp",getCacheDir());task.write(f);if(f.length()==0)throw new IOException("empty");final File completed=f;runOnUiThread(()->{if(closed){completed.delete();return;}output=completed;outputMime=mime;outputName=name;Intent i=new Intent(Intent.ACTION_CREATE_DOCUMENT);i.addCategory(Intent.CATEGORY_OPENABLE);i.setType(mime);i.putExtra(Intent.EXTRA_TITLE,name);try{startActivityForResult(i,SAVE);}catch(ActivityNotFoundException e){completed.delete();output=null;busy=false;status.setText(t("No save picker","저장 앱 없음","保存アプリなし"));}});}catch(Exception|OutOfMemoryError e){if(f!=null)f.delete();runOnUiThread(()->{busy=false;if(!closed)status.setText(t("Could not process files or meet the requested limit","파일 처리 또는 목표 용량 충족 실패","処理または指定サイズに失敗"));});}});}
-    private Bitmap image(Uri uri,int max)throws IOException{return ImageDecoder.decodeBitmap(ImageDecoder.createSource(getContentResolver(),uri),(decoder,info,src)->{int w=info.getSize().getWidth(),h=info.getSize().getHeight();double scale=Math.min(1d,max/(double)Math.max(w,h));decoder.setTargetSize(Math.max(1,(int)(w*scale)),Math.max(1,(int)(h*scale)));decoder.setAllocator(ImageDecoder.ALLOCATOR_SOFTWARE);});}
-    private byte[] encode(Bitmap bitmap,Bitmap.CompressFormat format,int quality)throws IOException{ByteArrayOutputStream b=new ByteArrayOutputStream();if(!bitmap.compress(format,quality,b))throw new IOException("encode");return b.toByteArray();}
-    private Bitmap white(Bitmap b){Bitmap out=Bitmap.createBitmap(b.getWidth(),b.getHeight(),Bitmap.Config.ARGB_8888);Canvas c=new Canvas(out);c.drawColor(Color.WHITE);c.drawBitmap(b,0,0,null);return out;}
-    private byte[] jpegLimit(Bitmap original,int quality,int limit)throws IOException{Bitmap b=white(original);try{while(true){for(int q=quality;q>=10;q-=5){byte[] data=encode(b,Bitmap.CompressFormat.JPEG,q);if(limit==0||data.length<=limit)return data;}int w=b.getWidth(),h=b.getHeight();if(Math.max(w,h)<=32)throw new IOException("limit");Bitmap small=Bitmap.createScaledBitmap(b,Math.max(1,w*3/4),Math.max(1,h*3/4),true);if(small==b)throw new IOException("limit");b.recycle();b=small;}}finally{b.recycle();}}
-    @Override protected void onDestroy(){closed=true;worker.shutdownNow();if(output!=null)output.delete();if(capture!=null)capture.delete();super.onDestroy();}
 
-    private MaskView mask;private Bitmap current;private final ArrayList<RectF> marks=new ArrayList<>();
-    @Override public void onCreate(Bundle state){super.onCreate(state);setup(t("Draw rectangles over private details. Export applies solid black redaction, not reversible layers.","민감한 영역을 드래그하세요. 검은색으로 완전히 가린 이미지로 저장합니다.","隠す部分をドラッグ。黒塗りを画像に焼き込んで保存します。"));button(t("Choose photo","사진 선택","写真を選択"),()->pick("image/*",false));
-      mask=new MaskView();mask.setContentDescription(t("Redaction preview; drag to cover an area","가림 미리보기; 드래그로 영역 지정","黒塗りプレビュー"));root.addView(mask,new LinearLayout.LayoutParams(-1,dp(320)));
-      button(t("Undo last area","마지막 영역 취소","最後の範囲を取消"),()->{if(!marks.isEmpty()){marks.remove(marks.size()-1);mask.invalidate();}});
-      button(t("Save redacted image","가린 사진 저장","黒塗り画像を保存"),()->{if(busy)return;if(current==null||marks.isEmpty()){status.setText(t("Choose photo and mark an area","사진과 가릴 영역을 선택하세요","写真と範囲を選択"));return;}Bitmap snapshot=current.copy(Bitmap.Config.ARGB_8888,true);Canvas c=new Canvas(snapshot);Paint paint=new Paint();paint.setColor(Color.BLACK);for(RectF r:marks)c.drawRect(r.left*snapshot.getWidth(),r.top*snapshot.getHeight(),r.right*snapshot.getWidth(),r.bottom*snapshot.getHeight(),paint);export("image/png","BlurKit.png",file->{try(OutputStream out=new FileOutputStream(file)){if(!snapshot.compress(Bitmap.CompressFormat.PNG,100,out))throw new IOException("encode");}finally{snapshot.recycle();}});});
-    }
-    protected void onPicked(){if(selected.isEmpty())return;Uri u=selected.get(0);if(current!=null){current.recycle();current=null;}marks.clear();mask.invalidate();busy=true;worker.execute(()->{try{Bitmap decoded=image(u,2048);runOnUiThread(()->{busy=false;if(closed){decoded.recycle();return;}if(current!=null)current.recycle();current=decoded;marks.clear();mask.invalidate();});}catch(Exception|OutOfMemoryError e){runOnUiThread(()->{busy=false;status.setText(t("Image load failed","이미지 열기 실패","画像を開けません"));});}});}
-    private class MaskView extends View{private final Paint paint=new Paint(Paint.FILTER_BITMAP_FLAG);private final RectF box=new RectF();private float x,y;private RectF drag;MaskView(){super(MainActivity.this);setBackgroundColor(0xffdddddd);}protected void onDraw(Canvas c){super.onDraw(c);if(current==null)return;float s=Math.min(getWidth()/(float)current.getWidth(),getHeight()/(float)current.getHeight());float w=current.getWidth()*s,h=current.getHeight()*s;box.set((getWidth()-w)/2,(getHeight()-h)/2,(getWidth()+w)/2,(getHeight()+h)/2);c.drawBitmap(current,null,box,paint);paint.setColor(Color.BLACK);for(RectF r:marks)drawMark(c,r);if(drag!=null)drawMark(c,drag);}private void drawMark(Canvas c,RectF r){c.drawRect(box.left+r.left*box.width(),box.top+r.top*box.height(),box.left+r.right*box.width(),box.top+r.bottom*box.height(),paint);}float clip(float f){return Math.max(0,Math.min(1,f));}@Override public boolean onTouchEvent(android.view.MotionEvent e){if(current==null||busy||box.isEmpty())return false;float a=clip((e.getX()-box.left)/box.width()),b=clip((e.getY()-box.top)/box.height());switch(e.getActionMasked()){case MotionEvent.ACTION_DOWN:if(!box.contains(e.getX(),e.getY()))return false;getParent().requestDisallowInterceptTouchEvent(true);x=a;y=b;drag=new RectF(x,y,x,y);invalidate();return true;case MotionEvent.ACTION_MOVE:case MotionEvent.ACTION_UP:drag=new RectF(Math.min(x,a),Math.min(y,b),Math.max(x,a),Math.max(y,b));if(e.getActionMasked()==MotionEvent.ACTION_UP){if(drag.width()>.002f&&drag.height()>.002f)marks.add(drag);drag=null;getParent().requestDisallowInterceptTouchEvent(false);performClick();}invalidate();return true;case MotionEvent.ACTION_CANCEL:drag=null;getParent().requestDisallowInterceptTouchEvent(false);invalidate();return true;default:return false;}}@Override public boolean performClick(){super.performClick();return true;}}
+    @Override public void onCreate(Bundle state) {
+        super.onCreate(state);
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_SECURE);
+        ui = new KitUi(this, 0xff804180, 0xffefb7ec);
+        ScrollView scroll = new ScrollView(this);
+        scroll.setFillViewport(true);
+        scroll.setBackgroundColor(ui.background);
+        LinearLayout page = ui.column();
+        FrameLayout frame = new FrameLayout(this);
+        frame.addView(page, new FrameLayout.LayoutParams(-1, -2, Gravity.TOP | Gravity.CENTER_HORIZONTAL));
+        scroll.addView(frame);
+        setContentView(scroll);
+        SystemInsets.apply(this, scroll);
+        page.addView(ui.text(getString(R.string.app_name), 32, true));
+        page.addView(ui.text(t("Cover private details with solid black rectangles before sharing.",
+                "공유하기 전에 민감한 정보를 검은색 사각형으로 가리세요.",
+                "共有前に個人情報を黒い四角形で隠してください。"), 15, false));
 
+        LinearLayout photo = ui.card(page);
+        preview = new MaskView();
+        preview.setContentDescription(t("Photo redaction preview", "사진 가림 미리보기", "写真の黒塗りプレビュー"));
+        ui.preview(preview);
+        photo.addView(preview, ui.space(ui.dp(320), 0, 8));
+        pickButton = button(photo, t("Choose photo", "사진 선택", "写真を選択"), true, this::pick);
+
+        LinearLayout actions = ui.card(page);
+        markCount = ui.text("", 15, false);
+        actions.addView(markCount);
+        markCount.setAccessibilityLiveRegion(View.ACCESSIBILITY_LIVE_REGION_POLITE);
+        undoButton = button(actions, t("Undo last area", "마지막 영역 취소", "最後の範囲を取消"),
+                false, () -> {
+                    if (!marks.isEmpty()) marks.remove(marks.size() - 1);
+                    updateControls();
+                });
+        saveButton = button(actions, t("Save redacted image", "가린 사진 저장", "黒塗り画像を保存"),
+                true, this::exportImage);
+        status = ui.text("", 15, false);
+        status.setAccessibilityLiveRegion(View.ACCESSIBILITY_LIVE_REGION_POLITE);
+        actions.addView(status);
+        status.setText(t("Choose a photo, then drag to cover a private area.",
+                "사진을 선택한 뒤 드래그하여 가릴 영역을 지정하세요.",
+                "写真を選び、隠したい範囲をドラッグしてください。"));
+        page.addView(ui.text(t("Export creates a new PNG without source metadata. Check that all private details are covered.",
+                "내보낸 PNG에는 원본 메타데이터가 복사되지 않습니다. 민감한 정보가 모두 가려졌는지 확인하세요.",
+                "出力するPNGには元のメタデータを含みません。個人情報がすべて隠れているか確認してください。"), 14, false));
+        updateControls();
+    }
+
+    private Button button(LinearLayout container, String text, boolean primary, Runnable action) {
+        Button button = new Button(this);
+        button.setText(text);
+        ui.button(button, primary);
+        button.setOnClickListener(v -> action.run());
+        container.addView(button, ui.space(-2, 3, 4));
+        return button;
+    }
+
+    private void updateControls() {
+        pickButton.setEnabled(!busy);
+        undoButton.setEnabled(!busy && !marks.isEmpty());
+        saveButton.setEnabled(!busy && current != null && !marks.isEmpty());
+        markCount.setText(String.format(getResources().getConfiguration().getLocales().get(0),
+                t("Covered areas: %d", "가린 영역: %d개", "黒塗り範囲: %dか所"), marks.size()));
+        preview.invalidate();
+    }
+
+    private void pick() {
+        if (busy) return;
+        Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT).setType("image/*");
+        intent.addCategory(Intent.CATEGORY_OPENABLE);
+        try {
+            startActivityForResult(intent, PICK);
+        } catch (ActivityNotFoundException e) {
+            status.setText(t("No file picker", "파일 선택기 없음", "ファイル選択不可"));
+        }
+    }
+
+    @Override protected void onActivityResult(int request, int result, Intent data) {
+        super.onActivityResult(request, result, data);
+        Uri uri = result == RESULT_OK && data != null ? data.getData() : null;
+        if (request == PICK && uri != null) load(uri);
+        if (request == SAVE) {
+            File source = pendingOutput;
+            pendingOutput = null;
+            if (source != null && uri != null) writeDocument(source, uri);
+            else {
+                if (source != null) source.delete();
+                busy = false;
+                status.setText(t("Save canceled", "저장 취소됨", "保存を中止しました"));
+                updateControls();
+            }
+        }
+    }
+
+    private void load(Uri uri) {
+        busy = true;
+        status.setText(t("Opening photo…", "사진을 여는 중…", "写真を開いています…"));
+        updateControls();
+        worker.execute(() -> {
+            Bitmap decoded = null;
+            try {
+                decoded = ImageDecoder.decodeBitmap(ImageDecoder.createSource(getContentResolver(), uri),
+                        (decoder, info, source) -> {
+                            int width = info.getSize().getWidth();
+                            int height = info.getSize().getHeight();
+                            double scale = Math.min(1d, MAX_SIDE / (double) Math.max(width, height));
+                            decoder.setTargetSize(Math.max(1, (int) (width * scale)),
+                                    Math.max(1, (int) (height * scale)));
+                            decoder.setAllocator(ImageDecoder.ALLOCATOR_SOFTWARE);
+                        });
+            } catch (IOException | RuntimeException | OutOfMemoryError ignored) {
+                // A failed pick must leave the existing image and redactions intact.
+            }
+            Bitmap ready = decoded;
+            runOnUiThread(() -> {
+                if (closed) {
+                    if (ready != null) ready.recycle();
+                    return;
+                }
+                busy = false;
+                if (ready == null) {
+                    status.setText(t("Could not open photo", "사진을 열 수 없습니다", "写真を開けません"));
+                } else {
+                    if (current != null) current.recycle();
+                    current = ready;
+                    marks.clear();
+                    preview.clearDrag();
+                    status.setText(t("Drag across a private area to cover it.",
+                            "가릴 영역을 드래그하세요.", "隠す範囲をドラッグしてください。"));
+                }
+                updateControls();
+            });
+        });
+    }
+
+    private void exportImage() {
+        if (busy || current == null || marks.isEmpty()) return;
+        Bitmap snapshot;
+        try {
+            snapshot = current.copy(Bitmap.Config.ARGB_8888, true);
+            if (snapshot == null) throw new IllegalStateException("Could not copy image");
+        } catch (RuntimeException | OutOfMemoryError e) {
+            exportFailed();
+            return;
+        }
+        ArrayList<RectF> exportMarks = new ArrayList<>(marks);
+        busy = true;
+        status.setText(t("Preparing PNG…", "PNG 생성 중…", "PNGを準備中…"));
+        updateControls();
+        worker.execute(() -> {
+            File temporary = null;
+            try {
+                Canvas canvas = new Canvas(snapshot);
+                Paint black = new Paint();
+                black.setColor(Color.BLACK);
+                for (RectF mark : exportMarks) {
+                    int[] bounds = MaskBounds.pixels(mark.left, mark.top, mark.right, mark.bottom,
+                            snapshot.getWidth(), snapshot.getHeight());
+                    canvas.drawRect(bounds[0], bounds[1], bounds[2], bounds[3], black);
+                }
+                temporary = File.createTempFile("blurkit-", ".png", getCacheDir());
+                try (OutputStream output = new FileOutputStream(temporary)) {
+                    if (!snapshot.compress(Bitmap.CompressFormat.PNG, 100, output)) throw new IOException();
+                }
+                File ready = temporary;
+                runOnUiThread(() -> chooseDestination(ready));
+            } catch (IOException | RuntimeException | OutOfMemoryError e) {
+                if (temporary != null) temporary.delete();
+                runOnUiThread(this::exportFailed);
+            } finally {
+                snapshot.recycle();
+            }
+        });
+    }
+
+    private void chooseDestination(File ready) {
+        if (closed) {
+            ready.delete();
+            return;
+        }
+        pendingOutput = ready;
+        Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT).setType("image/png");
+        intent.addCategory(Intent.CATEGORY_OPENABLE);
+        intent.putExtra(Intent.EXTRA_TITLE, "BlurKit.png");
+        try {
+            startActivityForResult(intent, SAVE);
+        } catch (ActivityNotFoundException e) {
+            pendingOutput = null;
+            ready.delete();
+            exportFailed();
+        }
+    }
+
+    private void writeDocument(File source, Uri uri) {
+        worker.execute(() -> {
+            try (InputStream input = new FileInputStream(source);
+                 OutputStream output = getContentResolver().openOutputStream(uri, "wt")) {
+                if (output == null) throw new IOException();
+                byte[] buffer = new byte[32768];
+                for (int count; (count = input.read(buffer)) != -1;) output.write(buffer, 0, count);
+            } catch (IOException | RuntimeException e) {
+                try {
+                    DocumentsContract.deleteDocument(getContentResolver(), uri);
+                } catch (IOException | RuntimeException ignored) {
+                    // A provider may not support deleting its incomplete document.
+                }
+                runOnUiThread(this::exportFailed);
+                return;
+            } finally {
+                source.delete();
+            }
+            runOnUiThread(() -> {
+                if (closed) return;
+                busy = false;
+                status.setText(t("Saved redacted PNG", "가린 PNG 저장 완료", "黒塗りPNGを保存しました"));
+                updateControls();
+            });
+        });
+    }
+
+    private void exportFailed() {
+        if (closed) return;
+        busy = false;
+        status.setText(t("Could not save image", "이미지를 저장할 수 없습니다", "画像を保存できません"));
+        updateControls();
+    }
+
+    @Override protected void onDestroy() {
+        closed = true;
+        worker.shutdown();
+        if (pendingOutput != null) pendingOutput.delete();
+        if (current != null) current.recycle();
+        current = null;
+        super.onDestroy();
+    }
+
+    private final class MaskView extends View {
+        private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG);
+        private final RectF box = new RectF();
+        private float startX;
+        private float startY;
+        private RectF drag;
+
+        MaskView() { super(MainActivity.this); }
+
+        @Override protected void onDraw(Canvas canvas) {
+            super.onDraw(canvas);
+            if (current == null) {
+                box.setEmpty();
+                paint.setColor(ui.muted);
+                paint.setTextSize(ui.dp(16));
+                paint.setTextAlign(Paint.Align.CENTER);
+                canvas.drawText(t("No photo selected", "선택한 사진 없음", "写真が未選択です"),
+                        getWidth() / 2f, getHeight() / 2f, paint);
+                return;
+            }
+            float scale = Math.min(getWidth() / (float) current.getWidth(), getHeight() / (float) current.getHeight());
+            float w = current.getWidth() * scale;
+            float h = current.getHeight() * scale;
+            box.set((getWidth() - w) / 2, (getHeight() - h) / 2, (getWidth() + w) / 2, (getHeight() + h) / 2);
+            paint.setColor(Color.BLACK);
+            canvas.drawBitmap(current, null, box, paint);
+            for (RectF mark : marks) drawMark(canvas, mark);
+            if (drag != null) drawMark(canvas, drag);
+        }
+
+        private void drawMark(Canvas canvas, RectF mark) {
+            canvas.drawRect(box.left + mark.left * box.width(), box.top + mark.top * box.height(),
+                    box.left + mark.right * box.width(), box.top + mark.bottom * box.height(), paint);
+        }
+
+        private float clamp(float value) { return Math.max(0f, Math.min(1f, value)); }
+
+        void clearDrag() { drag = null; }
+
+        @Override public boolean onTouchEvent(MotionEvent event) {
+            if (current == null || busy || box.isEmpty()) return false;
+            float x = clamp((event.getX() - box.left) / box.width());
+            float y = clamp((event.getY() - box.top) / box.height());
+            switch (event.getActionMasked()) {
+                case MotionEvent.ACTION_DOWN:
+                    if (!box.contains(event.getX(), event.getY())) return false;
+                    if (marks.size() >= MAX_MARKS) {
+                        status.setText(t("Undo an area before adding another.",
+                                "영역을 추가하려면 먼저 기존 가림을 취소하세요.",
+                                "範囲を追加するには先に黒塗りを取り消してください。"));
+                        return true;
+                    }
+                    getParent().requestDisallowInterceptTouchEvent(true);
+                    startX = x;
+                    startY = y;
+                    drag = new RectF(x, y, x, y);
+                    return true;
+                case MotionEvent.ACTION_MOVE:
+                case MotionEvent.ACTION_UP:
+                    if (drag == null) return true;
+                    drag.set(Math.min(startX, x), Math.min(startY, y), Math.max(startX, x), Math.max(startY, y));
+                    if (event.getActionMasked() == MotionEvent.ACTION_UP) {
+                        if (drag.width() > .002f && drag.height() > .002f) marks.add(drag);
+                        clearDrag();
+                        getParent().requestDisallowInterceptTouchEvent(false);
+                        updateControls();
+                        performClick();
+                    } else invalidate();
+                    return true;
+                case MotionEvent.ACTION_CANCEL:
+                case MotionEvent.ACTION_POINTER_DOWN:
+                    clearDrag();
+                    getParent().requestDisallowInterceptTouchEvent(false);
+                    invalidate();
+                    return true;
+                default:
+                    return true;
+            }
+        }
+
+        @Override public boolean performClick() {
+            super.performClick();
+            return true;
+        }
+    }
 }
