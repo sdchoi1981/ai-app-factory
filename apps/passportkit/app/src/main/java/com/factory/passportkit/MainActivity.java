@@ -34,7 +34,7 @@ import factory.ui.SystemInsets;
 import factory.ui.KitUi;
 
 public final class MainActivity extends Activity {
- private static final int PICK=101,CAPTURE=102,SAVE_JPG=103,SAVE_PDF=104,SAVE_SHEET=105,GUIDED=106,CAMERA_PERMISSION=107,GALLERY_PERMISSION=108;
+ private static final int PICK=101,CAPTURE=102,SAVE_JPG=103,SAVE_PDF=104,SAVE_SHEET=105,GUIDED=106,GUIDED_CAMERA_PERMISSION=107,GALLERY_PERMISSION=108,EXTERNAL_CAMERA_PERMISSION=109;
  private static final long SPLASH_MIN_MS=1500L;
  private static boolean firstActivityCreated;
  private View splashGateView;
@@ -339,12 +339,21 @@ public final class MainActivity extends Activity {
  @Override protected void onPause(){releaseSplashGate();super.onPause();}
  @Override protected void onSaveInstanceState(Bundle out){super.onSaveInstanceState(out);if(pendingCamera!=null)out.putString("capture",pendingCamera.getName());}
  private void pick(){if(busy||pendingExport!=null)return;try{Intent i=new Intent(Intent.ACTION_OPEN_DOCUMENT);i.setType("image/jpeg");i.addCategory(Intent.CATEGORY_OPENABLE);startActivityForResult(i,PICK);}catch(RuntimeException e){message(getString(R.string.pk_034));}}
- private void guided(){if(busy||pendingCamera!=null||pendingExport!=null)return;if(checkSelfPermission(android.Manifest.permission.CAMERA)!=android.content.pm.PackageManager.PERMISSION_GRANTED){requestPermissions(new String[]{android.Manifest.permission.CAMERA},CAMERA_PERMISSION);return;}launchGuide();}
+ private void guided(){
+  if(busy||pendingCamera!=null||pendingExport!=null)return;
+  if(checkSelfPermission(Manifest.permission.CAMERA)!=PackageManager.PERMISSION_GRANTED){
+   requestPermissions(new String[]{Manifest.permission.CAMERA},GUIDED_CAMERA_PERMISSION);
+   return;
+  }
+  launchGuide();
+ }
  @Override public void onRequestPermissionsResult(int request,String[] permissions,int[] grants){
   super.onRequestPermissionsResult(request,permissions,grants);
   boolean granted=grants.length>0&&grants[0]==PackageManager.PERMISSION_GRANTED;
-  if(request==CAMERA_PERMISSION){
-   if(granted)launchGuide();else message(getString(R.string.pk_035));
+  if(request==GUIDED_CAMERA_PERMISSION||request==EXTERNAL_CAMERA_PERMISSION){
+   if(!granted)message(getString(R.string.pk_035));
+   else if(request==GUIDED_CAMERA_PERMISSION)guided();
+   else camera();
   }else if(request==GALLERY_PERMISSION){
    int type=pendingGalleryType;
    pendingGalleryType=0;
@@ -354,7 +363,13 @@ public final class MainActivity extends Activity {
   }
  }
  private void launchGuide(){try{File dir=new File(getCacheDir(),"capture");dir.mkdirs();pendingCamera=File.createTempFile("photo-",".jpg",dir);Intent i=new Intent(this,GuideActivity.class);i.putExtra("name",pendingCamera.getName());i.putExtra("profile",profile.ordinal());startActivityForResult(i,GUIDED);}catch(Exception e){removeCapture();message(getString(R.string.pk_036));}}
- private void camera(){if(checkSelfPermission(android.Manifest.permission.CAMERA)!=android.content.pm.PackageManager.PERMISSION_GRANTED){guided();return;}if(busy||pendingCamera!=null||pendingExport!=null)return;try{
+ private void camera(){
+  if(busy||pendingCamera!=null||pendingExport!=null)return;
+  if(checkSelfPermission(Manifest.permission.CAMERA)!=PackageManager.PERMISSION_GRANTED){
+   requestPermissions(new String[]{Manifest.permission.CAMERA},EXTERNAL_CAMERA_PERMISSION);
+   return;
+  }
+  try{
   File dir=new File(getCacheDir(),"capture");if(!dir.exists()&&!dir.mkdirs())throw new IOException();
   pendingCamera=File.createTempFile("photo-",".jpg",dir);
   Uri uri=FileProvider.getUriForFile(this,getPackageName()+".capture",pendingCamera);

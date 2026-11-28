@@ -25,3 +25,8 @@ assert.match(activity,/root\.addView\(footer,new LinearLayout\.LayoutParams\(-1,
 assert.match(activity,/if\(guideSelected\)showStage\(2\);/);
 assert.match(activity,/cropTools\.setVisibility\(guides\?View\.GONE:View\.VISIBLE\)/);
 console.log('Fixed workflow controls and crop/guide workspaces verified');
+
+assert.match(activity, /private void guided\(\)\{[\s\S]*?requestPermissions\(new String\[\]\{Manifest.permission.CAMERA\},GUIDED_CAMERA_PERMISSION\)/);
+assert.match(activity, /private void camera\(\)\{[\s\S]*?requestPermissions\(new String\[\]\{Manifest.permission.CAMERA\},EXTERNAL_CAMERA_PERMISSION\)/);
+assert.match(activity, /if\(!granted\)message\(getString\(R.string.pk_035\)\);\s*else if\(request==GUIDED_CAMERA_PERMISSION\)guided\(\);\s*else camera\(\);/);
+console.log('First-run camera permission preserves the selected capture mode');
