@@ -30,8 +30,6 @@ dependencies {
 apply from: rootProject.file('../../packages/ads/android/banner.gradle')
 
 if (providers.gradleProperty('factoryTestAds').orElse('false').get() == 'true') {
-    android.sourceSets.debug {
-        manifest.srcFile 'src/adtest/AndroidManifest.xml'
-        java.srcDir 'src/adtest/java'
-    }
+    android.sourceSets.main.manifest.srcFile 'src/adtest/AndroidManifest.xml'
+    android.sourceSets.debug.java.srcDir 'src/adtest/java'
 }
