@@ -17,7 +17,7 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.FormatStyle;
 import factory.ui.SystemInsets;
 
-public final class MainActivity extends Activity {
+public final class MainActivity extends factory.ads.BannerActivity {
     private LocalDate start, end;
     private Button startButton, endButton;
     private EditText offset;

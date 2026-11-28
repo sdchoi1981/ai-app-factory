@@ -62,6 +62,7 @@ function appCard(app) {
   metric(details, '최근 테스트', outcomes[latest?.test], latest?.test);
   metric(details, 'Artifact', latest && Object.keys(latest.artifacts).length ? '다운로드 링크 제공' : null);
   metric(details, '마켓 연동', null);
+  metric(details, '광고 테스트 구성', app.testBannerPrepared ? '테스트 빌드 지원 · 운영 광고 OFF' : null);
   metric(details, '광고 수익 연동', null);
   metric(details, '다운로드 통계', null);
   metric(details, '오류 통계', null);

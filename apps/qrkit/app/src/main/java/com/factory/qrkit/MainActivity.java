@@ -32,7 +32,7 @@ import java.nio.charset.StandardCharsets;
 import factory.ui.KitUi;
 import factory.ui.SystemInsets;
 
-public final class MainActivity extends Activity {
+public final class MainActivity extends factory.ads.BannerActivity {
     private static final int SCAN_REQUEST = 421;
     private static final int CAMERA_REQUEST = 422;
     private static final int MAX_BYTES = 1200;

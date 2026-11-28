@@ -1,2 +1,14 @@
 import assert from 'node:assert/strict';import {readFileSync,mkdtempSync,rmSync} from 'node:fs';import {execFileSync} from 'node:child_process';import {tmpdir} from 'node:os';import {join} from 'node:path';
 const manifest=readFileSync('app/src/main/AndroidManifest.xml','utf8'),source=readFileSync('app/src/main/java/factory/kit/MainActivity.java','utf8'),build=readFileSync('app/build.gradle','utf8');assert.ok(!manifest.includes('android.permission.INTERNET'));assert.ok(!manifest.includes('READ_MEDIA_IMAGES'));assert.ok(manifest.includes('android:allowBackup="false"'));assert.ok(build.includes("applicationId 'com.factory.blurkit'"));assert.ok(source.includes("drawRect"));assert.ok(source.includes('String t(String en,String ko,String ja)'));console.log('BlurKit: manifest, package and feature wiring checked');
+
+const testDir=mkdtempSync(join(tmpdir(),'blurkit-'));
+try {
+  execFileSync('javac',['-d',testDir,'app/src/main/java/factory/kit/MaskBounds.java','test/MaskBoundsTest.java'],{stdio:'inherit'});
+  execFileSync('java',['-cp',testDir,'factory.kit.MaskBoundsTest'],{stdio:'inherit'});
+} finally {
+  rmSync(testDir,{recursive:true,force:true});
+}
+assert.match(manifest,/@style\/FactoryTheme/);
+assert.match(source,/FLAG_SECURE/);
+assert.match(source,/MaskBounds\.pixels/);
+assert.match(source,/DocumentsContract\.deleteDocument/);

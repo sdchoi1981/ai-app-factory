@@ -16,7 +16,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.Collections;
 
-public final class MainActivity extends Activity {
+public final class MainActivity extends factory.ads.BannerActivity {
     private static final String LOCAL_URL = "https://appassets.androidplatform.net/assets/index.html";
     private WebView view;
     @Override public void onCreate(Bundle state) {

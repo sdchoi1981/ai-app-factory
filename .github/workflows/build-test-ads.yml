@@ -1,0 +1,71 @@
+name: Build test ads APKs
+on:
+  pull_request:
+    branches: [main]
+    paths: ['apps/**', 'packages/ads/**', '.github/workflows/build-test-ads.yml']
+  push:
+    branches: [main]
+    paths: ['apps/**', 'packages/ads/**', '.github/workflows/build-test-ads.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  select:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.select.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - id: select
+        run: |
+          set -euo pipefail
+          echo "matrix=$(node scripts/validate-apps.mjs --matrix --platform android | jq -c --slurpfile registry apps/registry.json '.include |= map(select(.appId as $id | any($registry[0].apps[]; .appId == $id and .monetization.testBannerPrepared == true)))')" >> "$GITHUB_OUTPUT"
+  build:
+    name: ${{ matrix.appName }} test ads
+    needs: select
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.select.outputs.matrix) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.13'
+          cache-read-only: ${{ github.ref != 'refs/heads/main' }}
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools platforms;android-36 build-tools;36.0.0'
+          log-accepted-android-sdk-licenses: 'false'
+      - name: Build test-only variant and verify isolation
+        env:
+          APP_PATH: ${{ matrix.path }}
+        run: |
+          set -euo pipefail
+          cd "$APP_PATH"
+          gradle --no-daemon --max-workers=4 -PfactoryTestAds=true :app:assembleDebug :app:lintDebug
+          apk=app/build/outputs/apk/debug/app-debug.apk
+          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify "$apk"
+          "$ANDROID_HOME/build-tools/36.0.0/aapt" dump badging "$apk" | grep -E "package: name='[^']+[.]adtest'"
+          "$ANDROID_HOME/build-tools/36.0.0/aapt" dump permissions "$apk" | grep -F "android.permission.INTERNET"
+          if "$ANDROID_HOME/build-tools/36.0.0/aapt" dump permissions "$apk" | grep -F "com.google.android.gms.permission.AD_ID"; then exit 1; fi
+          gradle --no-daemon -PfactoryTestAds=true :app:tasks --all > "$RUNNER_TEMP/tasks.txt"
+          if grep -E '^bundleRelease( |$)' "$RUNNER_TEMP/tasks.txt"; then echo "Test ads release task must not exist"; exit 1; fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.appId }}-TEST-ADS-APK
+          path: ${{ matrix.path }}/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 7
