@@ -24,7 +24,7 @@ jobs:
       - id: select
         run: |
           set -euo pipefail
-          echo "matrix=$(node scripts/validate-apps.mjs --matrix --platform android | jq -c .)" >> "$GITHUB_OUTPUT"
+          echo "matrix=$(node scripts/validate-apps.mjs --matrix --platform android | jq -c --slurpfile registry apps/registry.json '.include |= map(select(.appId as $id | any($registry[0].apps[]; .appId == $id and .monetization.testBannerPrepared == true)))')" >> "$GITHUB_OUTPUT"
   build:
     name: ${{ matrix.appName }} test ads
     needs: select
