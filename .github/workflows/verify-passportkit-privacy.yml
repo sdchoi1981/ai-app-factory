@@ -48,6 +48,37 @@ jobs:
              ! grep -Fxq "uses-permission: name='android.permission.WRITE_EXTERNAL_STORAGE' maxSdkVersion='28'" "$permissions"; then
             echo "Expected exactly one WRITE_EXTERNAL_STORAGE declaration capped at API 28"; exit 1
           fi
+      - name: Verify 16 KB alignment in the release build
+        working-directory: apps/passportkit
+        run: |
+          set -euo pipefail
+          gradle --no-daemon --max-workers=4 :app:assembleRelease :app:bundleRelease
+          release_apk=app/build/outputs/apk/release/app-release-unsigned.apk
+          release_aab=app/build/outputs/bundle/release/app-release.aab
+          "$ANDROID_HOME/build-tools/36.0.0/zipalign" -c -P 16 -v 4 "$release_apk"
+          python3 - "$release_aab" <<'PYTHON'
+          from pathlib import Path
+          from subprocess import check_output
+          from tempfile import TemporaryDirectory
+          from zipfile import ZipFile
+          import sys
+
+          with ZipFile(sys.argv[1]) as bundle, TemporaryDirectory() as temporary:
+              library = Path(temporary) / "library.so"
+              for name in bundle.namelist():
+                  if not name.endswith(".so"):
+                      continue
+                  library.write_bytes(bundle.read(name))
+                  headers = check_output(["readelf", "-lW", str(library)], text=True)
+                  alignments = [
+                      int(fields[-1], 16)
+                      for line in headers.splitlines()
+                      if (fields := line.split()) and fields[0] == "LOAD"
+                  ]
+                  if not alignments or min(alignments) < 16384:
+                      raise SystemExit(f"{name}: ELF LOAD alignment below 16 KB")
+                  print(f"{name}: ELF LOAD segments aligned to at least 16 KB")
+          PYTHON
       - uses: actions/upload-artifact@v4
         with:
           name: passportkit-PRIVACY-VERIFIED-APK
